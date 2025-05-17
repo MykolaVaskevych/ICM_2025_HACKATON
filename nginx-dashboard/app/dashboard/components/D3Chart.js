@@ -21,7 +21,9 @@ export default function D3Chart({
   yLabel = '',
   maxBars = 20,
   showTooltip = true,
-  className = ''
+  className = '',
+  tooltipFormatter = null,
+  description = ''
 }) {
   const containerRef = useRef(null);
   const svgRef = useRef(null);
@@ -52,135 +54,175 @@ export default function D3Chart({
     };
   }, []);
 
+  // Draw chart
   useEffect(() => {
-    // Loading state
-    if (!data || data.length === 0) {
-      setIsLoading(true);
+    if (!data || data.length === 0 || !containerRef.current) {
       return;
     }
+
+    setIsLoading(true);
+
+    // Give the browser time to calculate dimensions
+    setTimeout(() => {
+      try {
+        drawChart();
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error drawing chart:', error);
+        setIsLoading(false);
+      }
+    }, 300);
     
-    setIsLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, dimensions, type, xKey, yKey, colors, showLegend]);
 
-    if (!svgRef.current || !containerRef.current) return;
+  // Create tooltip div
+  const tooltipDiv = useRef(null);
 
-    // Clean up previous chart and tooltip
-    d3.select(svgRef.current).selectAll('*').remove();
-    
-    // Remove any previous tooltips that might be lingering
-    d3.selectAll('.chart-tooltip').remove();
-
-    // Create tooltip if it doesn't exist
-    if (!tooltipRef.current) {
-      tooltipRef.current = d3.select('body')
-        .append('div')
-        .attr('class', 'chart-tooltip')
-        .style('opacity', 0);
+  useEffect(() => {
+    // Create tooltip
+    if (showTooltip && !tooltipRef.current) {
+      tooltipRef.current = d3.select(tooltipDiv.current)
+        .style('opacity', 0)
+        .style('position', 'absolute')
+        .style('pointer-events', 'none');
     }
+  }, [showTooltip]);
 
-    // Use consistent dimensions
-    const chartWidth = dimensions.width > 0 ? dimensions.width : 600;
-    const chartHeight = dimensions.height > 0 ? dimensions.height : 300;
+  function drawChart() {
+    if (!svgRef.current || !data || data.length === 0) return;
+
+    // Clear previous chart
+    d3.select(svgRef.current).selectAll('*').remove();
+
+    // Get the dimensions of the container
+    const fullWidth = dimensions.width;
+    const fullHeight = dimensions.height;
     
-    const innerWidth = chartWidth - margin.left - margin.right;
-    const innerHeight = chartHeight - margin.top - margin.bottom;
+    // Calculate chart dimensions
+    const width = fullWidth - margin.left - margin.right;
+    const height = fullHeight - margin.top - margin.bottom;
 
-    // Create the SVG container
+    // Create SVG element
     const svg = d3.select(svgRef.current)
-      .attr('width', chartWidth)
-      .attr('height', chartHeight)
-      .attr('viewBox', `0 0 ${chartWidth} ${chartHeight}`)
-      .attr('preserveAspectRatio', 'xMidYMid meet')
+      .attr('width', fullWidth)
+      .attr('height', fullHeight)
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // Add title if provided
-    if (title) {
+    // Choose chart type
+    switch (type) {
+      case 'bar':
+        createBarChart(svg, data.slice(0, maxBars), width, height, xKey, yKey, colors, showTooltip);
+        break;
+      case 'line':
+        createLineChart(svg, data, width, height, xKey, yKey, colors, showTooltip);
+        break;
+      case 'pie':
+      case 'donut':
+        createPieChart(svg, data, width, height, xKey, yKey, colors, type === 'donut', showTooltip);
+        break;
+      default:
+        console.warn(`Chart type ${type} not supported`);
+    }
+
+    // Add X and Y axis labels
+    if (xLabel) {
       svg.append('text')
-        .attr('x', innerWidth / 2)
-        .attr('y', -5)
+        .attr('class', 'chart-text x-label')
         .attr('text-anchor', 'middle')
-        .attr('class', 'chart-text')
-        .style('font-size', '16px')
-        .style('font-weight', 'bold')
-        .text(title);
+        .attr('x', width / 2)
+        .attr('y', height + margin.bottom - 10)
+        .text(xLabel)
+        .attr('fill', 'currentColor');
     }
 
-    // Limit the number of bars if needed
-    let chartData = [...data];
-    if (type === 'bar' && chartData.length > maxBars) {
-      chartData = chartData.slice(0, maxBars);
-    }
-
-    // Create the chart based on type
-    if (type === 'bar') {
-      createBarChart(svg, chartData, innerWidth, innerHeight, xKey, yKey, colors, showTooltip, onClick);
-    } else if (type === 'line') {
-      createLineChart(svg, chartData, innerWidth, innerHeight, xKey, yKey, colors, showTooltip);
-    } else if (type === 'pie') {
-      createPieChart(svg, chartData, Math.min(innerWidth, innerHeight) / 2, xKey, yKey, colors, showTooltip, onClick);
-    } else if (type === 'donut') {
-      createDonutChart(svg, chartData, Math.min(innerWidth, innerHeight) / 2, xKey, yKey, colors, showTooltip, onClick);
-    }
-
-    // Add x-axis label
-    if (xLabel && type !== 'pie' && type !== 'donut') {
+    if (yLabel) {
       svg.append('text')
-        .attr('x', innerWidth / 2)
-        .attr('y', innerHeight + 40)
+        .attr('class', 'chart-text y-label')
         .attr('text-anchor', 'middle')
-        .attr('class', 'chart-text')
-        .text(xLabel);
+        .attr('transform', `rotate(-90)`)
+        .attr('x', -height / 2)
+        .attr('y', -margin.left + 15)
+        .text(yLabel)
+        .attr('fill', 'currentColor');
     }
-
-    // Add y-axis label
-    if (yLabel && type !== 'pie' && type !== 'donut') {
-      svg.append('text')
-        .attr('transform', 'rotate(-90)')
-        .attr('x', -innerHeight / 2)
-        .attr('y', -40)
-        .attr('text-anchor', 'middle')
-        .attr('class', 'chart-text')
-        .text(yLabel);
-    }
-
-    // Add legend if needed
-    if (showLegend && legendItems.length > 0) {
+    
+    // Add legend if enabled
+    if (showLegend && legendItems && legendItems.length > 0) {
+      const legendSpacing = 20;
+      const legendItemWidth = 15;
+      const legendItemHeight = 15;
+      const legendTextOffset = 25;
+      const legendGroupWidth = 150; // Space for each legend group
+      const legendItems_filtered = legendItems.filter((_, i) => i < 5); // Limit to 5 legend items
+      
       const legend = svg.append('g')
-        .attr('transform', `translate(${innerWidth - 100}, 0)`);
-
-      legendItems.forEach((item, i) => {
-        const legendRow = legend.append('g')
-          .attr('transform', `translate(0, ${i * 20})`);
-        
-        legendRow.append('rect')
-          .attr('width', 10)
-          .attr('height', 10)
-          .attr('fill', item.color || colors[i % colors.length]);
-        
-        legendRow.append('text')
-          .attr('x', 15)
-          .attr('y', 10)
-          .attr('text-anchor', 'start')
-          .attr('class', 'chart-text')
-          .style('font-size', '12px')
-          .text(item.label);
-      });
+        .attr('class', 'legend')
+        .attr('transform', `translate(0, -15)`);
+      
+      // Create legend items
+      const legendItem = legend.selectAll('.legend-item')
+        .data(legendItems_filtered)
+        .enter()
+        .append('g')
+        .attr('class', 'legend-item')
+        .attr('transform', (d, i) => `translate(${i * legendGroupWidth}, 0)`);
+      
+      // Add colored rectangle
+      legendItem.append('rect')
+        .attr('width', legendItemWidth)
+        .attr('height', legendItemHeight)
+        .attr('fill', d => d.color);
+      
+      // Add label
+      legendItem.append('text')
+        .attr('x', legendTextOffset)
+        .attr('y', legendItemHeight - 2)
+        .attr('fill', 'currentColor')
+        .attr('class', 'chart-text legend-text')
+        .style('font-size', '12px')
+        .text(d => d.label);
     }
-  }, [data, type, xKey, yKey, dimensions, margin, colors, title, showLegend, legendItems, onClick, xLabel, yLabel, maxBars, showTooltip]);
+  }
 
-  function createBarChart(svg, data, width, height, xKey, yKey, colors, showTooltip, onClick) {
+  function createBarChart(svg, data, width, height, xKey, yKey, colors, showTooltip) {
+    // Sort bars for better visualization
+    data = data.sort((a, b) => b[yKey] - a[yKey]);
+    
     // X scale
     const x = d3.scaleBand()
       .domain(data.map(d => d[xKey]))
       .range([0, width])
       .padding(0.2);
-
+    
     // Y scale
     const y = d3.scaleLinear()
-      .domain([0, d3.max(data, d => d[yKey]) * 1.1]) // Add 10% padding at top
+      .domain([0, d3.max(data, d => d[yKey]) * 1.1]) // Add 10% padding
       .nice()
       .range([height, 0]);
-
+    
+    // Create color scale
+    const colorScale = d3.scaleOrdinal()
+      .domain(data.map(d => d[xKey]))
+      .range(colors.length >= data.length 
+        ? colors 
+        : d3.quantize(t => d3.interpolateSpectral(t * 0.8 + 0.1), data.length));
+    
+    // Draw X axis
+    svg.append('g')
+      .attr('transform', `translate(0,${height})`)
+      .call(d3.axisBottom(x))
+      .selectAll('text')
+      .attr('transform', 'translate(-10,0)rotate(-45)')
+      .style('text-anchor', 'end')
+      .attr('class', 'chart-text');
+    
+    // Draw Y axis
+    svg.append('g')
+      .call(d3.axisLeft(y).ticks(5))
+      .attr('class', 'chart-text');
+      
     // Add grid lines
     svg.append('g')
       .attr('class', 'grid')
@@ -189,64 +231,38 @@ export default function D3Chart({
         .tickSize(-width)
         .tickFormat('')
       );
-
-    // X axis
-    svg.append('g')
-      .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x))
-      .selectAll('text')
-      .attr('class', 'chart-text')
-      .style('text-anchor', 'end')
-      .attr('transform', 'rotate(-45)')
-      .attr('dx', '-.8em')
-      .attr('dy', '.15em');
-
-    // Y axis
-    svg.append('g')
-      .call(d3.axisLeft(y)
-        .ticks(5)
-        .tickFormat(d => d >= 1000 ? `${d/1000}k` : d) // Format large numbers
-      )
-      .selectAll('text')
-      .attr('class', 'chart-text');
-
-    // Color scale
-    const color = d3.scaleOrdinal()
-      .domain(data.map(d => d[xKey]))
-      .range(colors);
-
-    // Add bars with animation
-    svg.selectAll('.bar')
+    
+    // Draw bars
+    svg.selectAll('rect')
       .data(data)
       .enter()
       .append('rect')
-      .attr('class', 'bar chart-bar')
       .attr('x', d => x(d[xKey]))
-      .attr('y', height) // Start from bottom for animation
       .attr('width', x.bandwidth())
+      .attr('y', height) // Start from bottom for animation
       .attr('height', 0) // Start with height 0 for animation
-      .attr('fill', d => color(d[xKey]))
-      .attr('rx', 2) // Rounded corners
-      .style('cursor', onClick ? 'pointer' : 'default')
+      .attr('fill', (d, i) => colorScale(d[xKey]))
+      .attr('class', 'chart-bar')
       .on('mouseover', function(event, d) {
         if (showTooltip && tooltipRef.current) {
           d3.select(this).attr('opacity', 0.8);
+          
           tooltipRef.current
             .transition()
             .duration(200)
-            .style('opacity', .9);
-            
-          // Enhanced tooltip with more information
-          const formattedValue = d[yKey].toLocaleString();
-          let tooltip = `
-            <div class="chart-tooltip-title">${d[xKey]}</div>
-            <div><span class="chart-tooltip-value">${formattedValue}</span> ${yLabel || 'items'}</div>
-          `;
+            .style('opacity', 0.9);
           
-          // Add contextual information if available
-          if (d.description) tooltip += `<div class="chart-tooltip-info">${d.description}</div>`;
-          if (d.fullTime) tooltip += `<div class="chart-tooltip-info">Time: ${d.fullTime}</div>`;
-          if (d.fullDate) tooltip += `<div class="chart-tooltip-info">Date: ${d.fullDate}</div>`;
+          // Create a tooltip using formatter if provided
+          let tooltip;
+          if (tooltipFormatter) {
+            tooltip = `<div class="chart-tooltip-title">${d[xKey]}</div>
+                     <div class="chart-tooltip-value">${tooltipFormatter(d)}</div>`;
+          } else {
+            tooltip = `
+              <div class="chart-tooltip-title">${d[xKey]}</div>
+              <div><span class="chart-tooltip-value">${d[yKey].toLocaleString()}</span> ${yLabel}</div>
+            `;
+          }
           
           tooltipRef.current.html(tooltip)
             .style('left', (event.pageX + 10) + 'px')
@@ -269,7 +285,7 @@ export default function D3Chart({
       .duration(800)
       .delay((d, i) => i * 50)
       .attr('y', d => y(d[yKey]))
-      .attr('height', d => height - y(d[yKey]));
+      .attr('height', d => Math.max(height - y(d[yKey]), 2)); // Ensure minimum height for small values
   }
 
   function createLineChart(svg, data, width, height, xKey, yKey, colors, showTooltip) {
@@ -298,333 +314,271 @@ export default function D3Chart({
         .tickFormat('')
       );
 
-    // X axis
+    // Draw X axis
     svg.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x))
       .selectAll('text')
-      .attr('class', 'chart-text')
+      .attr('transform', 'translate(-10,0)rotate(-45)')
       .style('text-anchor', 'end')
-      .attr('transform', 'rotate(-45)')
-      .attr('dx', '-.8em')
-      .attr('dy', '.15em');
-
-    // Y axis
-    svg.append('g')
-      .call(d3.axisLeft(y)
-        .ticks(5)
-        .tickFormat(d => d >= 1000 ? `${d/1000}k` : d) // Format large numbers
-      )
-      .selectAll('text')
       .attr('class', 'chart-text');
 
-    // Define the line
+    // Draw Y axis
+    svg.append('g')
+      .call(d3.axisLeft(y).ticks(5))
+      .attr('class', 'chart-text');
+
+    // Create line generator
     const line = d3.line()
       .x(d => x(d[xKey]))
       .y(d => y(d[yKey]))
+      .curve(d3.curveMonotoneX); // Use monotone curve for smoother lines
+
+    // Draw the line
+    svg.append('path')
+      .datum(data)
+      .attr('fill', 'none')
+      .attr('stroke', colors[0])
+      .attr('stroke-width', 2.5)
+      .attr('d', line)
+      .attr('stroke-dasharray', function() { 
+        const length = this.getTotalLength();
+        return `${length} ${length}`;
+      })
+      .attr('stroke-dashoffset', function() { 
+        const length = this.getTotalLength();
+        return length;
+      })
+      .transition()
+      .duration(2000)
+      .ease(d3.easeLinear)
+      .attr('stroke-dashoffset', 0);
+
+    // Add data points
+    const points = svg.selectAll('.data-point')
+      .data(data)
+      .enter()
+      .append('circle')
+      .attr('class', 'data-point')
+      .attr('cx', d => x(d[xKey]))
+      .attr('cy', d => y(d[yKey]))
+      .attr('r', 4)
+      .attr('fill', colors[0])
+      .attr('stroke', '#fff')
+      .attr('stroke-width', 1.5)
+      .style('opacity', 0)
+      .on('mouseover', function(event, d) {
+        if (showTooltip && tooltipRef.current) {
+          d3.select(this)
+            .attr('r', 6)
+            .style('opacity', 1);
+          
+          tooltipRef.current
+            .transition()
+            .duration(200)
+            .style('opacity', 0.9);
+          
+          // Create a tooltip using formatter if provided
+          let tooltip;
+          if (tooltipFormatter) {
+            tooltip = `<div class="chart-tooltip-title">${d[xKey]}</div>
+                     <div class="chart-tooltip-value">${tooltipFormatter(d)}</div>`;
+          } else {
+            tooltip = `
+              <div class="chart-tooltip-title">${d[xKey]}</div>
+              <div><span class="chart-tooltip-value">${d[yKey].toLocaleString()}</span> ${yLabel}</div>
+            `;
+          }
+          
+          tooltipRef.current.html(tooltip)
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 28) + 'px');
+        }
+      })
+      .on('mouseout', function() {
+        if (showTooltip && tooltipRef.current) {
+          d3.select(this)
+            .attr('r', 4)
+            .style('opacity', 0.8);
+          
+          tooltipRef.current
+            .transition()
+            .duration(500)
+            .style('opacity', 0);
+        }
+      })
+      .on('click', function(event, d) {
+        if (onClick) onClick(d);
+      })
+      .transition()
+      .delay((d, i) => i * 50 + 1000) // Start after line animation
+      .duration(300)
+      .style('opacity', 0.8);
+
+    // Draw area under line if needed (optional)
+    const area = d3.area()
+      .x(d => x(d[xKey]))
+      .y0(height)
+      .y1(d => y(d[yKey]))
       .curve(d3.curveMonotoneX);
 
-    // Add area under the line
     svg.append('path')
       .datum(data)
       .attr('fill', colors[0])
       .attr('fill-opacity', 0.1)
-      .attr('d', d3.area()
-        .x(d => x(d[xKey]))
-        .y0(height)
-        .y1(d => y(d[yKey]))
-        .curve(d3.curveMonotoneX)
-      );
-
-    // Add the line path with animation
-    const path = svg.append('path')
-      .datum(data)
-      .attr('fill', 'none')
-      .attr('stroke', colors[0])
-      .attr('stroke-width', 3)
-      .attr('d', line);
-
-    // Animate the line
-    const pathLength = path.node().getTotalLength();
-    path
-      .attr('stroke-dasharray', pathLength)
-      .attr('stroke-dashoffset', pathLength)
+      .attr('d', area)
+      .attr('opacity', 0)
       .transition()
-      .duration(1000)
-      .attr('stroke-dashoffset', 0);
-
-    // Add dots with animation
-    svg.selectAll('.dot')
-      .data(data)
-      .enter()
-      .append('circle')
-      .attr('class', 'dot')
-      .attr('cx', d => x(d[xKey]))
-      .attr('cy', height) // Start at bottom for animation
-      .attr('r', 0) // Start with radius 0 for animation
-      .attr('fill', colors[0])
-      .on('mouseover', function(event, d) {
-        if (showTooltip && tooltipRef.current) {
-          d3.select(this).attr('r', 8);
-          tooltipRef.current
-            .transition()
-            .duration(200)
-            .style('opacity', .9);
-            
-          // Enhanced tooltip with more information
-          const formattedValue = d[yKey].toLocaleString();
-          let tooltip = `
-            <div class="chart-tooltip-title">${d[xKey]}</div>
-            <div><span class="chart-tooltip-value">${formattedValue}</span> ${yLabel || 'items'}</div>
-          `;
-          
-          // Add contextual information if available
-          if (d.description) tooltip += `<div class="chart-tooltip-info">${d.description}</div>`;
-          if (d.fullTime) tooltip += `<div class="chart-tooltip-info">Time: ${d.fullTime}</div>`;
-          if (d.fullDate) tooltip += `<div class="chart-tooltip-info">Date: ${d.fullDate}</div>`;
-          
-          tooltipRef.current.html(tooltip)
-            .style('left', (event.pageX + 10) + 'px')
-            .style('top', (event.pageY - 28) + 'px');
-        }
-      })
-      .on('mouseout', function() {
-        if (showTooltip && tooltipRef.current) {
-          d3.select(this).attr('r', 5);
-          tooltipRef.current
-            .transition()
-            .duration(500)
-            .style('opacity', 0);
-        }
-      })
-      .transition() // Add animation
-      .duration(800)
-      .delay((d, i) => i * 50 + 500) // Delay to start after line animation
-      .attr('cy', d => y(d[yKey]))
-      .attr('r', 5);
+      .duration(2000)
+      .attr('opacity', 1);
   }
 
-  function createPieChart(svg, data, radius, xKey, yKey, colors, showTooltip, onClick) {
-    // Move the center of the pie chart
-    svg.attr('transform', `translate(${dimensions.width/2}, ${dimensions.height/2})`);
-    
-    // Color scale
-    const color = d3.scaleOrdinal()
-      .domain(data.map(d => d[xKey]))
-      .range(colors.length >= data.length ? colors : d3.schemeCategory10);
-
-    // Compute the position of each group on the pie
-    const pie = d3.pie()
-      .value(d => d[yKey])
-      .sort(null);
-
-    const data_ready = pie(data);
-
-    // Build the pie chart
-    const arcGenerator = d3.arc()
-      .innerRadius(0)
-      .outerRadius(radius);
-
-    // Add the slices with animation
-    svg
-      .selectAll('slices')
-      .data(data_ready)
-      .enter()
-      .append('path')
-      .attr('d', arcGenerator)
-      .attr('fill', d => color(d.data[xKey]))
-      .attr('stroke', 'white')
-      .style('stroke-width', '2px')
-      .style('opacity', 0.8)
-      .style('cursor', onClick ? 'pointer' : 'default')
-      .on('mouseover', function(event, d) {
-        if (showTooltip && tooltipRef.current) {
-          d3.select(this).style('opacity', 1);
-          tooltipRef.current
-            .transition()
-            .duration(200)
-            .style('opacity', .9);
-          
-          const percentage = Math.round((d.data[yKey] / d3.sum(data, d => d[yKey])) * 100);
-          
-          // Enhanced tooltip with more information
-          let tooltip = `
-            <div class="chart-tooltip-title">${d.data[xKey]}</div>
-            <div><span class="chart-tooltip-value">${d.data[yKey].toLocaleString()}</span> (${percentage}%)</div>
-          `;
-          
-          // Add contextual information if available
-          if (d.data.description) tooltip += `<div class="chart-tooltip-info">${d.data.description}</div>`;
-          
-          tooltipRef.current.html(tooltip)
-            .style('left', (event.pageX + 10) + 'px')
-            .style('top', (event.pageY - 28) + 'px');
-        }
-      })
-      .on('mouseout', function() {
-        if (showTooltip && tooltipRef.current) {
-          d3.select(this).style('opacity', 0.8);
-          tooltipRef.current
-            .transition()
-            .duration(500)
-            .style('opacity', 0);
-        }
-      })
-      .on('click', function(event, d) {
-        if (onClick) onClick(d.data);
-      })
-      .transition() // Add animation
-      .duration(800)
-      .attrTween('d', function(d) {
-        const i = d3.interpolate({startAngle: d.startAngle, endAngle: d.startAngle}, d);
-        return function(t) { return arcGenerator(i(t)); };
-      });
-
-    // Add labels inside the slices
-    if (data.length <= 8) {
-      svg
-        .selectAll('slices')
-        .data(data_ready)
-        .enter()
-        .append('text')
-        .text(d => {
-          const percentage = Math.round((d.data[yKey] / d3.sum(data, d => d[yKey])) * 100);
-          return percentage >= 5 ? `${percentage}%` : '';
-        })
-        .attr('transform', d => `translate(${arcGenerator.centroid(d)})`)
-        .style('text-anchor', 'middle')
-        .attr('class', 'chart-text')
-        .style('font-size', '12px')
-        .style('fill', 'white')
-        .style('opacity', 0)
-        .transition()
-        .delay(800) // Start after slice animation
-        .duration(500)
-        .style('opacity', 1);
-    }
-  }
-
-  function createDonutChart(svg, data, radius, xKey, yKey, colors, showTooltip, onClick) {
-    // Move the center of the donut chart
-    svg.attr('transform', `translate(${dimensions.width/2}, ${dimensions.height/2})`);
-    
-    // Color scale
-    const color = d3.scaleOrdinal()
-      .domain(data.map(d => d[xKey]))
-      .range(colors.length >= data.length ? colors : d3.schemeCategory10);
-
-    // Compute the position of each group on the donut
-    const pie = d3.pie()
-      .value(d => d[yKey])
-      .sort(null);
-
-    const data_ready = pie(data);
-
-    // Build the donut chart
-    const arcGenerator = d3.arc()
-      .innerRadius(radius * 0.5)
-      .outerRadius(radius);
-
-    // Add the slices with animation
-    svg
-      .selectAll('slices')
-      .data(data_ready)
-      .enter()
-      .append('path')
-      .attr('d', arcGenerator)
-      .attr('fill', d => color(d.data[xKey]))
-      .attr('stroke', 'white')
-      .style('stroke-width', '2px')
-      .style('opacity', 0.8)
-      .style('cursor', onClick ? 'pointer' : 'default')
-      .on('mouseover', function(event, d) {
-        if (showTooltip && tooltipRef.current) {
-          d3.select(this).style('opacity', 1);
-          tooltipRef.current
-            .transition()
-            .duration(200)
-            .style('opacity', .9);
-          
-          const percentage = Math.round((d.data[yKey] / d3.sum(data, d => d[yKey])) * 100);
-          
-          // Enhanced tooltip with more information
-          let tooltip = `
-            <div class="chart-tooltip-title">${d.data[xKey]}</div>
-            <div><span class="chart-tooltip-value">${d.data[yKey].toLocaleString()}</span> (${percentage}%)</div>
-          `;
-          
-          // Add contextual information if available
-          if (d.data.description) tooltip += `<div class="chart-tooltip-info">${d.data.description}</div>`;
-          
-          tooltipRef.current.html(tooltip)
-            .style('left', (event.pageX + 10) + 'px')
-            .style('top', (event.pageY - 28) + 'px');
-        }
-      })
-      .on('mouseout', function() {
-        if (showTooltip && tooltipRef.current) {
-          d3.select(this).style('opacity', 0.8);
-          tooltipRef.current
-            .transition()
-            .duration(500)
-            .style('opacity', 0);
-        }
-      })
-      .on('click', function(event, d) {
-        if (onClick) onClick(d.data);
-      })
-      .transition() // Add animation
-      .duration(800)
-      .attrTween('d', function(d) {
-        const i = d3.interpolate({startAngle: d.startAngle, endAngle: d.startAngle}, d);
-        return function(t) { return arcGenerator(i(t)); };
-      });
-
-    // Add the total value in the center
+  function createPieChart(svg, data, width, height, xKey, yKey, colors, isDonut, showTooltip) {
+    // Calculate total for percentage display
     const total = d3.sum(data, d => d[yKey]);
-    svg.append('text')
-      .attr('text-anchor', 'middle')
-      .attr('dy', '0.35em')
-      .attr('class', 'chart-text')
-      .style('font-size', '24px')
-      .style('font-weight', 'bold')
-      .text('0')
+    
+    // Set inner and outer radius
+    const radius = Math.min(width, height) / 2;
+    const innerRadius = isDonut ? radius * 0.5 : 0;
+    
+    // Position pie in center
+    const pieGroup = svg.append('g')
+      .attr('transform', `translate(${width / 2}, ${height / 2})`);
+    
+    // Create pie layout
+    const pie = d3.pie()
+      .value(d => d[yKey])
+      .sort(null); // Don't sort by value
+    
+    // Create arc generator
+    const arc = d3.arc()
+      .innerRadius(innerRadius)
+      .outerRadius(radius);
+    
+    // Create color scale
+    const colorScale = d3.scaleOrdinal()
+      .domain(data.map(d => d[xKey]))
+      .range(colors.length >= data.length 
+        ? colors 
+        : d3.quantize(t => d3.interpolateSpectral(t * 0.8 + 0.1), data.length));
+    
+    // Draw pie slices
+    const slices = pieGroup.selectAll('path')
+      .data(pie(data))
+      .enter()
+      .append('path')
+      .attr('d', arc)
+      .attr('fill', (d, i) => colorScale(d.data[xKey]))
+      .attr('stroke', '#fff')
+      .style('stroke-width', '1px')
+      .on('mouseover', function(event, d) {
+        if (showTooltip && tooltipRef.current) {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('transform', `scale(1.05)`);
+          
+          tooltipRef.current
+            .transition()
+            .duration(200)
+            .style('opacity', 0.9);
+          
+          // Create a tooltip using formatter if provided
+          let tooltip;
+          if (tooltipFormatter) {
+            tooltip = `<div class="chart-tooltip-title">${d.data[xKey]}</div>
+                     <div class="chart-tooltip-value">${tooltipFormatter(d.data)}</div>`;
+          } else {
+            tooltip = `
+              <div class="chart-tooltip-title">${d.data[xKey]}</div>
+              <div><span class="chart-tooltip-value">${d.data[yKey].toLocaleString()}</span> ${yLabel}</div>
+              <div class="chart-tooltip-info">${(d.endAngle - d.startAngle) > 0.2 ? Math.round(d.data[yKey] / total * 100) + '%' : ''}</div>
+            `;
+          }
+          
+          tooltipRef.current.html(tooltip)
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 28) + 'px');
+        }
+      })
+      .on('mouseout', function() {
+        if (showTooltip && tooltipRef.current) {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('transform', 'scale(1)');
+          
+          tooltipRef.current
+            .transition()
+            .duration(500)
+            .style('opacity', 0);
+        }
+      })
+      .on('click', function(event, d) {
+        if (onClick) onClick(d.data);
+      })
       .transition()
       .duration(1000)
-      .tween('text', function() {
-        const i = d3.interpolateNumber(0, total);
+      .attrTween('d', function(d) {
+        const interpolate = d3.interpolate(
+          {startAngle: d.startAngle, endAngle: d.startAngle},
+          {startAngle: d.startAngle, endAngle: d.endAngle}
+        );
         return function(t) {
-          this.textContent = Math.round(i(t)).toLocaleString();
+          return arc(interpolate(t));
         };
       });
     
-    svg.append('text')
+    // Add slice labels for large enough slices
+    const labelArc = d3.arc()
+      .innerRadius(radius * 0.7)
+      .outerRadius(radius * 0.7);
+    
+    pieGroup.selectAll('text')
+      .data(pie(data))
+      .enter()
+      .append('text')
+      .attr('transform', d => {
+        // Only show labels for slices that take up enough space
+        if ((d.endAngle - d.startAngle) < 0.2) return 'translate(-9999,-9999)';
+        return `translate(${labelArc.centroid(d)})`;
+      })
+      .attr('dy', '0.35em')
       .attr('text-anchor', 'middle')
-      .attr('dy', '1.5em')
-      .attr('class', 'chart-text')
-      .style('font-size', '14px')
-      .text('Total');
+      .text(d => Math.round(d.data[yKey] / total * 100) + '%')
+      .attr('fill', '#fff')
+      .style('font-size', '12px')
+      .style('font-weight', 'bold')
+      .style('opacity', 0)
+      .transition()
+      .delay(1000) // Start after pie animation
+      .duration(500)
+      .style('opacity', 1);
+    
+    // Add a center text for donut charts
+    if (isDonut) {
+      pieGroup.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '0.35em')
+        .style('font-size', '14px')
+        .attr('class', 'chart-text')
+        .text(`${total.toLocaleString()} ${yLabel}`);
+    }
   }
 
-  // Cleanup tooltip on unmount
-  useEffect(() => {
-    return () => {
-      if (tooltipRef.current) {
-        d3.select(tooltipRef.current).remove();
-        tooltipRef.current = null;
-      }
-    };
-  }, []);
-
   return (
-    <div 
-      ref={containerRef} 
-      className={`relative w-full h-full flex items-center justify-center overflow-visible chart-container ${className}`}
-    >
-      {isLoading ? (
-        <div className="chart-skeleton"></div>
-      ) : (
-        <svg ref={svgRef} className="overflow-visible"></svg>
+    <div className={`w-full h-full ${className}`} ref={containerRef}>
+      {isLoading && (
+        <div className="chart-skeleton h-full w-full rounded"></div>
+      )}
+      <div className={`w-full h-full ${isLoading ? 'hidden' : ''}`}>
+        <svg ref={svgRef} width="100%" height="100%"></svg>
+        {showTooltip && <div ref={tooltipDiv} className="chart-tooltip"></div>}
+      </div>
+      {description && (
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 px-2 italic">
+          {description}
+        </div>
       )}
     </div>
   );

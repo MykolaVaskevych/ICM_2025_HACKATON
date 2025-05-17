@@ -15,7 +15,8 @@ export default function ErrorAnalysis({
   formattedTimelineData,
   formatDailyData,
   statusCodeColors,
-  handleApplyFilters = () => {}
+  handleApplyFilters = () => {},
+  selectedDay = null
 }) {
   // Get error-only status codes
   const errorStatusData = useMemo(() => {
@@ -28,12 +29,24 @@ export default function ErrorAnalysis({
   // Calculate error timeline
   const errorTimelineData = useMemo(() => {
     if (timeRange === 'hourly') {
-      // Use the pre-formatted timeline data
-      return formattedTimelineData.map(point => {
+      // Use the pre-formatted timeline data and filter by selected day if needed
+      let filteredData = formattedTimelineData;
+      
+      // Filter by selected day if one is selected
+      if (selectedDay) {
+        filteredData = formattedTimelineData.filter(point => 
+          point.fullTime && point.fullTime.startsWith(selectedDay)
+        );
+      }
+      
+      return filteredData.map(point => {
         const matchingLogs = rawLogsData.filter(log => {
           if (!log.timestamp) return false;
+          const logDate = new Date(log.timestamp).toISOString().split('T')[0];
           const logHour = new Date(log.timestamp).getHours() + ':00';
-          return logHour === point.hour && parseInt(log.status) >= 400;
+          return logHour === point.hour && 
+                 (!selectedDay || logDate === selectedDay) && 
+                 parseInt(log.status) >= 400;
         });
         return {
           hour: point.hour,
@@ -55,7 +68,7 @@ export default function ErrorAnalysis({
         };
       });
     }
-  }, [timeRange, timelineData, dailyData, rawLogsData, formattedTimelineData, formatDailyData]);
+  }, [timeRange, timelineData, dailyData, rawLogsData, formattedTimelineData, formatDailyData, selectedDay]);
 
   // Enhanced columns for error paths with status code info
   const errorColumns = [
@@ -120,6 +133,12 @@ export default function ErrorAnalysis({
               yKey="count"
               xLabel="Status Code"
               yLabel="Count"
+              tooltipFormatter={(d) => `Status ${d.status}: ${d.count} occurrences (${d.description || ''})`}
+              showTooltip={true}
+              description="Displays the frequency of different error status codes"
+              onClick={(d) => {
+                handleApplyFilters({ status: d.status });
+              }}
               colors={[statusCodeColors['4xx'], statusCodeColors['5xx']]}
               showLegend={true}
               legendItems={[
@@ -143,6 +162,9 @@ export default function ErrorAnalysis({
               type="pie"
               xKey="type"
               yKey="count"
+              tooltipFormatter={(d) => `${d.type}: ${d.count} occurrences (${((d.count / (errorTypeDistribution[0].count + errorTypeDistribution[1].count)) * 100).toFixed(1)}%)`}
+              showTooltip={true}
+              description="Compares the distribution between client errors (4xx) and server errors (5xx)"
               colors={[statusCodeColors['4xx'], statusCodeColors['5xx']]}
               showLegend={true}
               legendItems={[
@@ -158,7 +180,7 @@ export default function ErrorAnalysis({
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-            {`Error Timeline (${timeRange === 'hourly' ? 'Hourly' : 'Daily'})`}
+            {`Error Timeline (${timeRange === 'hourly' ? `Hourly ${selectedDay ? `(${selectedDay})` : ''}` : 'Daily'})`}
           </h3>
         </div>
         <div className="p-4 h-[300px]">
@@ -170,18 +192,26 @@ export default function ErrorAnalysis({
             xLabel={timeRange === 'hourly' ? 'Hour' : 'Date'}
             yLabel="Error Count"
             colors={['#ef4444']}
+            showTooltip={true}
+            showLegend={true}
+            legendItems={[{ label: 'Error Frequency', color: '#ef4444' }]}
+            tooltipFormatter={(d) => `${d.count} errors at ${timeRange === 'hourly' ? `${d.hour}` : d.date}`}
+            description="Displays the frequency of errors (4xx and 5xx status codes) over time"
           />
         </div>
       </div>
       
       {/* Top Error Paths */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden w-full">
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
             Top Error Paths
           </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Paths that generated the most errors, with their common status codes
+          </p>
         </div>
-        <div className="p-4">
+        <div className="p-4 overflow-x-auto">
           <DataTable
             data={errorPathsData.slice(0, 10)}
             columns={errorColumns}

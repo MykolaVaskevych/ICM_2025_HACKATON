@@ -242,7 +242,7 @@ export default function DashboardContent({
             
             <ResponsiveGrid>
               {/* Top Endpoints */}
-              <Card title="Top Endpoints" height="auto">
+              <Card title="Top Endpoints" height="auto" className="col-span-full">
                 <DataTable
                   data={endpointsData.slice(0, 10)}
                   columns={[
@@ -261,25 +261,34 @@ export default function DashboardContent({
           <>
             <ResponsiveGrid columns={{ sm: 1, md: 1, lg: 2 }}>
               {/* Traffic transferred */}
-              <Card title={`Traffic Transferred (MB) - ${timeRange === 'hourly' ? 'Hourly' : 'Daily'}`}>
+              <Card title={`Traffic Transferred (MB) - ${timeRange === 'hourly' ? `Hourly ${selectedDay ? `(${selectedDay})` : ''}` : 'Daily'}`}>
                 <D3Chart 
-                  data={timeRange === 'hourly' ? formatTrafficData : formatDailyData.map(d => ({ 
-                    date: d.date, 
-                    fullDate: d.fullDate,
-                    // Simulate traffic data based on request counts if needed
-                    megabytes: dailyData.find(day => day.date === d.fullDate)?.count / 10 || 0 
-                  }))} 
+                  data={timeRange === 'hourly' 
+                    ? (selectedDay 
+                        ? formatTrafficData.filter(point => point.fullTime && point.fullTime.startsWith(selectedDay))
+                        : formatTrafficData)
+                    : formatDailyData.map(d => ({ 
+                        date: d.date, 
+                        fullDate: d.fullDate,
+                        // Simulate traffic data based on request counts
+                        megabytes: dailyData.find(day => day.date === d.fullDate)?.count / 10 || 0 
+                      }))} 
                   type="line" 
                   xKey={timeRange === 'hourly' ? 'hour' : 'date'} 
                   yKey="megabytes"
                   xLabel={timeRange === 'hourly' ? 'Hour' : 'Date'} 
                   yLabel="MB"
                   colors={['#059669']}
+                  showTooltip={true}
+                  showLegend={true}
+                  legendItems={[{ label: 'Data Transfer Volume', color: '#059669' }]}
+                  tooltipFormatter={(d) => `${d.megabytes.toFixed(2)} MB at ${timeRange === 'hourly' ? `${d.hour}:00` : d.date}`}
+                  description="Shows the volume of data transferred to clients in megabytes"
                 />
               </Card>
               
               {/* File types */}
-              <Card title="Content Types">
+              <Card title="Content Types Distribution">
                 <D3Chart 
                   data={fileTypesData.slice(0, 10)} 
                   type="bar" 
@@ -289,13 +298,25 @@ export default function DashboardContent({
                   yLabel="Requests"
                   colors={chartColors}
                   maxBars={10}
+                  showTooltip={true}
+                  showLegend={true}
+                  legendItems={fileTypesData.slice(0, 5).map((type, i) => ({
+                    label: type.type,
+                    color: chartColors[i % chartColors.length]
+                  }))}
+                  tooltipFormatter={(d) => `${d.count.toLocaleString()} requests for .${d.type} files (${(d.count / summaryData.find(s => s.metric === 'Total Requests')?.value * 100).toFixed(1)}% of total)`}
+                  description="Shows distribution of requests by file extension types"
+                  onClick={(d) => {
+                    setActiveTab('logs');
+                    handleApplyFilters({ path: `.${d.type}` });
+                  }}
                 />
               </Card>
             </ResponsiveGrid>
             
             <ResponsiveGrid>
               {/* Success vs Error */}
-              <Card title="Request Status Distribution" height="auto">
+              <Card title="Request Status Distribution" height="auto" className="col-span-full">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   {statusCategoriesData.map((category, index) => (
                     <div 
@@ -314,7 +335,7 @@ export default function DashboardContent({
             </ResponsiveGrid>
             
             <ResponsiveGrid>
-              <Card title="Top Referrers" height="auto">
+              <Card title="Top Referrers" height="auto" className="col-span-full">
                 <DataTable
                   data={referrersData.slice(0, 10)}
                   columns={[
@@ -342,6 +363,7 @@ export default function DashboardContent({
             formatDailyData={formatDailyData}
             statusCodeColors={statusCodeColors}
             handleApplyFilters={handleApplyFilters}
+            selectedDay={selectedDay}
           />
         );
 
@@ -416,7 +438,7 @@ export default function DashboardContent({
             </ResponsiveGrid>
             
             <ResponsiveGrid>
-              <Card title="Top IP Addresses" height="auto">
+              <Card title="Top IP Addresses" height="auto" className="col-span-full">
                 <DataTable
                   data={ipsData.slice(0, 15)}
                   columns={[
