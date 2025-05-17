@@ -575,11 +575,6 @@ export default function D3Chart({
         <svg ref={svgRef} width="100%" height="100%"></svg>
         {showTooltip && <div ref={tooltipDiv} className="chart-tooltip"></div>}
       </div>
-      {description && (
-        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 px-2 italic">
-          {description}
-        </div>
-      )}
     </div>
   );
 }

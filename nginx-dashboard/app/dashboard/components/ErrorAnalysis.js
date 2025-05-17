@@ -135,7 +135,6 @@ export default function ErrorAnalysis({
               yLabel="Count"
               tooltipFormatter={(d) => `Status ${d.status}: ${d.count} occurrences (${d.description || ''})`}
               showTooltip={true}
-              description="Displays the frequency of different error status codes"
               onClick={(d) => {
                 handleApplyFilters({ status: d.status });
               }}
@@ -164,7 +163,6 @@ export default function ErrorAnalysis({
               yKey="count"
               tooltipFormatter={(d) => `${d.type}: ${d.count} occurrences (${((d.count / (errorTypeDistribution[0].count + errorTypeDistribution[1].count)) * 100).toFixed(1)}%)`}
               showTooltip={true}
-              description="Compares the distribution between client errors (4xx) and server errors (5xx)"
               colors={[statusCodeColors['4xx'], statusCodeColors['5xx']]}
               showLegend={true}
               legendItems={[
@@ -196,7 +194,6 @@ export default function ErrorAnalysis({
             showLegend={true}
             legendItems={[{ label: 'Error Frequency', color: '#ef4444' }]}
             tooltipFormatter={(d) => `${d.count} errors at ${timeRange === 'hourly' ? `${d.hour}` : d.date}`}
-            description="Displays the frequency of errors (4xx and 5xx status codes) over time"
           />
         </div>
       </div>

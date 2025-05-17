@@ -283,7 +283,6 @@ export default function DashboardContent({
                   showLegend={true}
                   legendItems={[{ label: 'Data Transfer Volume', color: '#059669' }]}
                   tooltipFormatter={(d) => `${d.megabytes.toFixed(2)} MB at ${timeRange === 'hourly' ? `${d.hour}:00` : d.date}`}
-                  description="Shows the volume of data transferred to clients in megabytes"
                 />
               </Card>
               
@@ -305,7 +304,6 @@ export default function DashboardContent({
                     color: chartColors[i % chartColors.length]
                   }))}
                   tooltipFormatter={(d) => `${d.count.toLocaleString()} requests for .${d.type} files (${(d.count / summaryData.find(s => s.metric === 'Total Requests')?.value * 100).toFixed(1)}% of total)`}
-                  description="Shows distribution of requests by file extension types"
                   onClick={(d) => {
                     setActiveTab('logs');
                     handleApplyFilters({ path: `.${d.type}` });
