@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "dev:db": "cp app/dashboard/page-db.js app/dashboard/page.js && next dev --turbopack",
+    "build:db": "cp app/dashboard/page-db.js app/dashboard/page.js && next build"
   },
   "dependencies": {
     "d3": "^7.9.0",
