@@ -11,6 +11,8 @@ export const config = {
 
 export async function POST(request) {
   try {
+    console.log('Processing upload request');
+    
     // Check if request is multipart form data
     const contentType = request.headers.get('content-type') || '';
     if (!contentType.includes('multipart/form-data')) {

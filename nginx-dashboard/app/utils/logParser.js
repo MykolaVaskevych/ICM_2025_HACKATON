@@ -49,7 +49,7 @@ export async function parseLogFile(fileBuffer, fileName) {
         throw new Error(`Failed to decompress .gz file: ${error.message}`);
       }
     } else {
-      // Handle txt, log, and files without extensions
+      // Handle txt, log, json and files without extensions
       try {
         fileContent = fileBuffer.toString('utf-8');
         // Check if the content is valid text
@@ -57,23 +57,81 @@ export async function parseLogFile(fileBuffer, fileName) {
           throw new Error('File content appears to be empty or invalid');
         }
       } catch (error) {
-        console.error('Error reading plain log file:', error);
-        throw new Error(`Failed to read log file: ${error.message}`);
+        console.error('Error reading file:', error);
+        throw new Error(`Failed to read file: ${error.message}`);
       }
     }
     
-    // Parse log lines
-    const lines = fileContent.split('\n').filter(line => line.trim());
-    console.log(`Processing ${lines.length} log lines from ${fileName}`);
-    
-    if (lines.length === 0) {
-      throw new Error('No valid log lines found in the file');
+    // Check if it's a JSON file
+    if (fileExt === '.json' || (fileContent.trim().startsWith('[') && fileContent.trim().endsWith(']'))) {
+      try {
+        console.log('Detected JSON format file, parsing as JSON');
+        // Parse JSON and extract logs
+        const jsonData = JSON.parse(fileContent);
+        
+        // If it's an array, assume it's an array of log objects
+        if (Array.isArray(jsonData)) {
+          console.log(`Processing ${jsonData.length} log entries from JSON file`);
+          
+          if (jsonData.length === 0) {
+            throw new Error('No log entries found in JSON file');
+          }
+          
+          // Initialize stats
+          const stats = initializeStats();
+          
+          // Process each log entry
+          jsonData.forEach(log => updateStats(stats, log));
+          
+          // Calculate derived statistics
+          calculateDerivedStats(stats);
+          
+          return {
+            logs: jsonData,
+            stats
+          };
+        } else if (jsonData.logs && Array.isArray(jsonData.logs)) {
+          // If it has a "logs" property that's an array, use that
+          console.log(`Processing ${jsonData.logs.length} log entries from JSON file`);
+          
+          if (jsonData.logs.length === 0) {
+            throw new Error('No log entries found in JSON file');
+          }
+          
+          // Use existing stats if provided, otherwise initialize
+          const stats = jsonData.stats || initializeStats();
+          
+          // If no stats provided, generate them from logs
+          if (!jsonData.stats) {
+            jsonData.logs.forEach(log => updateStats(stats, log));
+            calculateDerivedStats(stats);
+          }
+          
+          return {
+            logs: jsonData.logs,
+            stats
+          };
+        } else {
+          throw new Error('Invalid JSON format: expected an array of log entries or object with logs array');
+        }
+      } catch (jsonError) {
+        console.error('Error parsing JSON:', jsonError);
+        throw new Error(`JSON parsing error: ${jsonError.message}`);
+      }
+    } else {
+      // Process as regular log file
+      const lines = fileContent.split('\n').filter(line => line.trim());
+      console.log(`Processing ${lines.length} log lines from ${fileName}`);
+      
+      if (lines.length === 0) {
+        throw new Error('No valid log lines found in the file');
+      }
+      
+      return parseLogLines(lines);
     }
-    
-    return parseLogLines(lines);
   } catch (error) {
-    console.error('Error parsing log file:', error);
-    throw new Error(`Log parsing error: ${error.message}`);
+    console.error('Error parsing file:', error);
+    throw new Error(`File parsing error: ${error.message}`);
   }
 }
 

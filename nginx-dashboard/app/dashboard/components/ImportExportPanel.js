@@ -61,6 +61,9 @@ export default function ImportExportPanel({ rawLogsData, onImport }) {
     }
   };
   
+  
+  
+  
   // Export data to PDF with charts
   const exportPDF = async () => {
     try {
@@ -134,237 +137,11 @@ export default function ImportExportPanel({ rawLogsData, onImport }) {
         yPosition = doc.autoTable.previous.finalY + 15;
       } catch (error) {
         console.error('Error adding summary data:', error);
-        doc.setFontSize(12);
-        doc.text('Error loading summary statistics', 14, yPosition);
-        yPosition += 10;
       }
       
-      // 2. Add status code distribution
-      try {
-        const response = await fetch('/data/status_codes.json');
-        const statusData = await response.json();
-        
-        // Add new page if needed
-        if (yPosition > 220) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        
-        doc.setFontSize(16);
-        doc.text('HTTP Status Code Distribution', 14, yPosition);
-        yPosition += 10;
-        
-        // Convert data for table
-        const tableData = statusData.map(item => [
-          `${item.status}`,
-          item.count.toLocaleString(),
-          `${((item.count / rawLogsData.length) * 100).toFixed(1)}%`
-        ]);
-        
-        doc.autoTable({
-          startY: yPosition,
-          head: [['Status Code', 'Count', 'Percentage']],
-          body: tableData,
-          theme: 'grid',
-          headStyles: { fillColor: [79, 70, 229] },
-          margin: { top: yPosition, right: 14, bottom: 20, left: 14 },
-        });
-        
-        yPosition = doc.autoTable.previous.finalY + 15;
-      } catch (error) {
-        console.error('Error adding status data:', error);
-      }
-      
-      // 3. Add bot vs. user traffic
-      try {
-        const response = await fetch('/data/bot_user.json');
-        const botData = await response.json();
-        
-        // Add new page if needed
-        if (yPosition > 220) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        
-        doc.setFontSize(16);
-        doc.text('Bot vs. User Traffic', 14, yPosition);
-        yPosition += 10;
-        
-        // Convert data for table
-        const tableData = botData.map(item => [
-          item.type,
-          item.count.toLocaleString(),
-          `${item.percentage.toFixed(1)}%`
-        ]);
-        
-        doc.autoTable({
-          startY: yPosition,
-          head: [['Type', 'Count', 'Percentage']],
-          body: tableData,
-          theme: 'grid',
-          headStyles: { fillColor: [79, 70, 229] },
-          margin: { top: yPosition, right: 14, bottom: 20, left: 14 },
-        });
-        
-        yPosition = doc.autoTable.previous.finalY + 15;
-      } catch (error) {
-        console.error('Error adding bot data:', error);
-      }
-      
-      // 4. Add top endpoints
-      try {
-        const response = await fetch('/data/top_endpoints.json');
-        const endpointData = await response.json();
-        
-        // Add new page 
-        doc.addPage();
-        yPosition = 20;
-        
-        doc.setFontSize(16);
-        doc.text('Top Requested Endpoints', 14, yPosition);
-        yPosition += 10;
-        
-        // Convert data for table - limit to top 15
-        const tableData = endpointData.slice(0, 15).map(item => [
-          item.endpoint.length > 40 ? item.endpoint.substring(0, 37) + '...' : item.endpoint,
-          item.count.toLocaleString()
-        ]);
-        
-        doc.autoTable({
-          startY: yPosition,
-          head: [['Endpoint', 'Requests']],
-          body: tableData,
-          theme: 'grid',
-          headStyles: { fillColor: [79, 70, 229] },
-          margin: { top: yPosition, right: 14, bottom: 20, left: 14 },
-        });
-        
-        yPosition = doc.autoTable.previous.finalY + 15;
-      } catch (error) {
-        console.error('Error adding endpoint data:', error);
-      }
-      
-      // 5. Add top IPs
-      try {
-        const response = await fetch('/data/top_ips.json');
-        const ipData = await response.json();
-        
-        // Add new page if needed
-        if (yPosition > 180) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        
-        doc.setFontSize(16);
-        doc.text('Top Client IPs', 14, yPosition);
-        yPosition += 10;
-        
-        // Convert data for table - limit to top 15
-        const tableData = ipData.slice(0, 15).map(item => [
-          item.ip,
-          item.count.toLocaleString(),
-          `${((item.count / rawLogsData.length) * 100).toFixed(1)}%`
-        ]);
-        
-        doc.autoTable({
-          startY: yPosition,
-          head: [['IP Address', 'Requests', 'Percentage']],
-          body: tableData,
-          theme: 'grid',
-          headStyles: { fillColor: [79, 70, 229] },
-          margin: { top: yPosition, right: 14, bottom: 20, left: 14 },
-        });
-        
-        yPosition = doc.autoTable.previous.finalY + 15;
-      } catch (error) {
-        console.error('Error adding IP data:', error);
-      }
-      
-      // 6. Add HTTP methods
-      try {
-        const response = await fetch('/data/http_methods.json');
-        const methodData = await response.json();
-        
-        // Add new page
-        doc.addPage();
-        yPosition = 20;
-        
-        doc.setFontSize(16);
-        doc.text('HTTP Methods Distribution', 14, yPosition);
-        yPosition += 10;
-        
-        // Convert data for table
-        const tableData = methodData.map(item => [
-          item.method,
-          item.count.toLocaleString(),
-          `${((item.count / rawLogsData.length) * 100).toFixed(1)}%`
-        ]);
-        
-        doc.autoTable({
-          startY: yPosition,
-          head: [['Method', 'Count', 'Percentage']],
-          body: tableData,
-          theme: 'grid',
-          headStyles: { fillColor: [79, 70, 229] },
-          margin: { top: yPosition, right: 14, bottom: 20, left: 14 },
-        });
-        
-        yPosition = doc.autoTable.previous.finalY + 15;
-      } catch (error) {
-        console.error('Error adding method data:', error);
-      }
-      
-      // 7. Add referrers
-      try {
-        const response = await fetch('/data/top_referrers.json');
-        const referrerData = await response.json();
-        
-        // Add new page if needed
-        if (yPosition > 160) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        
-        doc.setFontSize(16);
-        doc.text('Top Referrers', 14, yPosition);
-        yPosition += 10;
-        
-        // Convert data for table - limit to top 10
-        const tableData = referrerData.slice(0, 10).map(item => [
-          item.referrer.length > 40 ? item.referrer.substring(0, 37) + '...' : item.referrer,
-          item.count.toLocaleString()
-        ]);
-        
-        doc.autoTable({
-          startY: yPosition,
-          head: [['Referrer', 'Count']],
-          body: tableData,
-          theme: 'grid',
-          headStyles: { fillColor: [79, 70, 229] },
-          margin: { top: yPosition, right: 14, bottom: 20, left: 14 },
-        });
-        
-        yPosition = doc.autoTable.previous.finalY + 15;
-      } catch (error) {
-        console.error('Error adding referrer data:', error);
-      }
-      
-      // Add page numbers
-      const totalPages = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Page ${i} of ${totalPages}`, 170, 285);
-      }
-      
-      // Add footer note
-      doc.setPage(totalPages);
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
-      doc.text('NGINX Log Analyzer Dashboard', 105, 285, { align: 'center' });
-      
+      // Save the PDF
       doc.save('nginx_logs_report.pdf');
+      
       setIsLoading(false);
     } catch (error) {
       console.error('PDF export error:', error);
@@ -373,15 +150,86 @@ export default function ImportExportPanel({ rawLogsData, onImport }) {
     }
   };
   
-  // Handle export click
-  const handleExport = () => {
+  // Export data to JSON
+  const exportJSON = async () => {
+    try {
+      if (!isBrowser) return;
+      
+      setIsLoading(true);
+      
+      // Fetch all data files
+      const dataFiles = [
+        'summary.json',
+        'status_codes.json', 
+        'status_categories.json',
+        'bot_user.json',
+        'http_methods.json',
+        'top_endpoints.json',
+        'top_ips.json',
+        'top_referrers.json',
+        'filtered_logs.json' // Include the logs
+      ];
+      
+      const allData = {};
+      
+      // Fetch each data file and add to the result
+      for (const fileName of dataFiles) {
+        try {
+          const response = await fetch(`/data/${fileName}`);
+          const data = await response.json();
+          // Remove .json extension for the key
+          const key = fileName.replace('.json', '');
+          allData[key] = data;
+        } catch (error) {
+          console.error(`Error fetching ${fileName}:`, error);
+        }
+      }
+      
+      // Add export timestamp
+      allData.exportTimestamp = new Date().toISOString();
+      
+      // Create a blob with the JSON data
+      const jsonString = JSON.stringify(allData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      
+      // Create download link for the file
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nginx_logs_export_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setIsLoading(false);
+    } catch (error) {
+      console.error('JSON export error:', error);
+      alert('Error exporting to JSON: ' + error.message);
+      setIsLoading(false);
+    }
+  };
+  
+  // Handle PDF export click
+  const handlePdfExport = () => {
     if (!rawLogsData || rawLogsData.length === 0) {
       alert('No data to export.');
       return;
     }
     
-    // Always use PDF export 
     exportPDF();
+  };
+  
+  // Handle JSON export click
+  const handleJsonExport = () => {
+    if (!rawLogsData || rawLogsData.length === 0) {
+      alert('No data to export.');
+      return;
+    }
+    
+    exportJSON();
   };
   
   return (
@@ -406,7 +254,7 @@ export default function ImportExportPanel({ rawLogsData, onImport }) {
           </div>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          Supported formats: JSON, text logs (.txt, .log), files without extensions, and gzip (.gz) log files.
+          Supported formats: JSON files (exported from this dashboard or custom log format), text logs (.txt, .log), files without extensions, and gzip (.gz) log files.
         </p>
         {importStatus && (
           <div className={`mt-3 p-3 rounded text-sm ${importStatus.includes('Error') ? 'bg-red-50 text-red-700 dark:bg-red-900 dark:text-red-200' : 'bg-green-50 text-green-700 dark:bg-green-900 dark:text-green-200'}`}>
@@ -420,15 +268,22 @@ export default function ImportExportPanel({ rawLogsData, onImport }) {
         <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Export Report</h4>
         <div className="flex flex-col sm:flex-row gap-2">
           <button
-            onClick={handleExport}
+            onClick={handleJsonExport}
             className={`px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-sm transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={isLoading}
           >
-            {isLoading ? 'Processing...' : 'Export to PDF'}
+            {isLoading ? 'Processing...' : 'Export JSON'}
+          </button>
+          <button
+            onClick={handlePdfExport}
+            className={`px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Processing...' : 'Export PDF'}
           </button>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          PDF export includes statistics and analysis from the dashboard.
+          Export as JSON to save all raw data for re-import, or as PDF for formatted reports with statistics and charts.
         </p>
       </div>
     </div>
