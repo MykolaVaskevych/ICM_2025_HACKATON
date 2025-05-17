@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import './chart-tooltips.css';
 
 export default function D3Chart({ 
   data, 
@@ -220,7 +219,7 @@ export default function D3Chart({
       .data(data)
       .enter()
       .append('rect')
-      .attr('class', 'bar chart-bar')
+      .attr('class', 'bar')
       .attr('x', d => x(d[xKey]))
       .attr('y', height) // Start from bottom for animation
       .attr('width', x.bandwidth())
@@ -236,19 +235,9 @@ export default function D3Chart({
             .duration(200)
             .style('opacity', .9);
             
-          // Enhanced tooltip with more information
+          // Format the tooltip text
           const formattedValue = d[yKey].toLocaleString();
-          let tooltip = `
-            <div class="chart-tooltip-title">${d[xKey]}</div>
-            <div><span class="chart-tooltip-value">${formattedValue}</span> ${yLabel || 'items'}</div>
-          `;
-          
-          // Add contextual information if available
-          if (d.description) tooltip += `<div class="chart-tooltip-info">${d.description}</div>`;
-          if (d.fullTime) tooltip += `<div class="chart-tooltip-info">Time: ${d.fullTime}</div>`;
-          if (d.fullDate) tooltip += `<div class="chart-tooltip-info">Date: ${d.fullDate}</div>`;
-          
-          tooltipRef.current.html(tooltip)
+          tooltipRef.current.html(`<strong>${d[xKey]}</strong>: ${formattedValue}`)
             .style('left', (event.pageX + 10) + 'px')
             .style('top', (event.pageY - 28) + 'px');
         }
@@ -371,19 +360,9 @@ export default function D3Chart({
             .duration(200)
             .style('opacity', .9);
             
-          // Enhanced tooltip with more information
+          // Format the tooltip text
           const formattedValue = d[yKey].toLocaleString();
-          let tooltip = `
-            <div class="chart-tooltip-title">${d[xKey]}</div>
-            <div><span class="chart-tooltip-value">${formattedValue}</span> ${yLabel || 'items'}</div>
-          `;
-          
-          // Add contextual information if available
-          if (d.description) tooltip += `<div class="chart-tooltip-info">${d.description}</div>`;
-          if (d.fullTime) tooltip += `<div class="chart-tooltip-info">Time: ${d.fullTime}</div>`;
-          if (d.fullDate) tooltip += `<div class="chart-tooltip-info">Date: ${d.fullDate}</div>`;
-          
-          tooltipRef.current.html(tooltip)
+          tooltipRef.current.html(`<strong>${d[xKey]}</strong>: ${formattedValue}`)
             .style('left', (event.pageX + 10) + 'px')
             .style('top', (event.pageY - 28) + 'px');
         }
@@ -444,19 +423,8 @@ export default function D3Chart({
             .transition()
             .duration(200)
             .style('opacity', .9);
-          
           const percentage = Math.round((d.data[yKey] / d3.sum(data, d => d[yKey])) * 100);
-          
-          // Enhanced tooltip with more information
-          let tooltip = `
-            <div class="chart-tooltip-title">${d.data[xKey]}</div>
-            <div><span class="chart-tooltip-value">${d.data[yKey].toLocaleString()}</span> (${percentage}%)</div>
-          `;
-          
-          // Add contextual information if available
-          if (d.data.description) tooltip += `<div class="chart-tooltip-info">${d.data.description}</div>`;
-          
-          tooltipRef.current.html(tooltip)
+          tooltipRef.current.html(`<strong>${d.data[xKey]}</strong>: ${d.data[yKey].toLocaleString()} (${percentage}%)`)
             .style('left', (event.pageX + 10) + 'px')
             .style('top', (event.pageY - 28) + 'px');
         }
@@ -544,19 +512,8 @@ export default function D3Chart({
             .transition()
             .duration(200)
             .style('opacity', .9);
-          
           const percentage = Math.round((d.data[yKey] / d3.sum(data, d => d[yKey])) * 100);
-          
-          // Enhanced tooltip with more information
-          let tooltip = `
-            <div class="chart-tooltip-title">${d.data[xKey]}</div>
-            <div><span class="chart-tooltip-value">${d.data[yKey].toLocaleString()}</span> (${percentage}%)</div>
-          `;
-          
-          // Add contextual information if available
-          if (d.data.description) tooltip += `<div class="chart-tooltip-info">${d.data.description}</div>`;
-          
-          tooltipRef.current.html(tooltip)
+          tooltipRef.current.html(`<strong>${d.data[xKey]}</strong>: ${d.data[yKey].toLocaleString()} (${percentage}%)`)
             .style('left', (event.pageX + 10) + 'px')
             .style('top', (event.pageY - 28) + 'px');
         }

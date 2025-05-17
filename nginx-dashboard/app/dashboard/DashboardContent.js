@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import TabsNavigation from './components/TabsNavigation';
 import StatsSummary from './components/StatsSummary';
 import FilterPanel from './components/FilterPanel';
@@ -8,6 +8,8 @@ import ResponsiveGrid from './components/ResponsiveGrid';
 import D3Chart from './components/D3Chart';
 import DataTable from './components/DataTable';
 import ErrorAnalysis from './components/ErrorAnalysis';
+import DaySelector from './components/DaySelector';
+import ImportExportPanel from './components/ImportExportPanel';
 
 // Tab definitions with icons
 const tabs = [
@@ -88,12 +90,36 @@ export default function DashboardContent({
   chartColors,
   logTableColumns
 }) {
+  // State for day selection
+  const [selectedDay, setSelectedDay] = useState(null);
+  
+  // Filter timeline data by selected day
+  const filteredHourlyData = useMemo(() => {
+    if (timeRange !== 'hourly' || !selectedDay || !formattedTimelineData) {
+      return formattedTimelineData;
+    }
+    
+    return formattedTimelineData.filter(point => {
+      return point.fullTime && point.fullTime.startsWith(selectedDay);
+    });
+  }, [formattedTimelineData, selectedDay, timeRange]);
   // Active tab state
   const [activeTab, setActiveTab] = useState('overview');
   
   // Handle tab change
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
+  };
+  
+  // Handle IP click to filter logs
+  const handleIpClick = (ipData) => {
+    if (ipData && ipData.ip) {
+      // Change to Raw Logs tab
+      setActiveTab('logs');
+      
+      // Apply filter for the selected IP
+      handleApplyFilters({ ip: ipData.ip });
+    }
   };
 
   // Card component for consistent styling
@@ -139,19 +165,36 @@ export default function DashboardContent({
                     { label: 'Client Error (4xx)', color: statusCodeColors['4xx'] },
                     { label: 'Server Error (5xx)', color: statusCodeColors['5xx'] }
                   ]}
+                  onClick={(d) => {
+                    // Extract status code category (2xx, 3xx, etc.) and navigate to logs tab with filter
+                    const category = d.category.split(' ')[0].toLowerCase().replace('(', '').replace(')', '');
+                    setActiveTab('logs');
+                    if (category === '2xx') {
+                      handleApplyFilters({ status: '200' });
+                    } else if (category === '3xx') {
+                      handleApplyFilters({ status: '301' });
+                    } else if (category === '4xx') {
+                      handleApplyFilters({ status: '404' });
+                    } else if (category === '5xx') {
+                      handleApplyFilters({ status: '500' });
+                    }
+                  }}
                 />
               </Card>
               
               {/* Timeline chart */}
-              <Card title={timeRange === 'hourly' ? 'Requests Per Hour' : 'Requests Per Day'}>
+              <Card title={timeRange === 'hourly' ? `Requests Per Hour ${selectedDay ? `(${selectedDay})` : ''}` : 'Requests Per Day'}>
                 <D3Chart 
-                  data={timeRange === 'hourly' ? formattedTimelineData : formatDailyData} 
+                  data={timeRange === 'hourly' ? filteredHourlyData : formatDailyData} 
                   type="line" 
                   xKey={timeRange === 'hourly' ? 'hour' : 'date'} 
                   yKey="count"
                   xLabel={timeRange === 'hourly' ? 'Hour' : 'Date'} 
                   yLabel="Requests"
                   colors={['#4f46e5']}
+                  showTooltip={true}
+                  showLegend={true}
+                  legendItems={[{ label: 'Request Volume', color: '#4f46e5' }]}
                 />
               </Card>
             </ResponsiveGrid>
@@ -183,6 +226,16 @@ export default function DashboardContent({
                   xLabel="Method" 
                   yLabel="Requests"
                   colors={chartColors}
+                  showLegend={true}
+                  legendItems={httpMethodsData.slice(0, 5).map((method, i) => ({
+                    label: method.method,
+                    color: chartColors[i % chartColors.length]
+                  }))}
+                  onClick={(d) => {
+                    // Filter logs by method
+                    setActiveTab('logs');
+                    handleApplyFilters({ method: d.method });
+                  }}
                 />
               </Card>
             </ResponsiveGrid>
@@ -288,6 +341,7 @@ export default function DashboardContent({
             formattedTimelineData={formattedTimelineData}
             formatDailyData={formatDailyData}
             statusCodeColors={statusCodeColors}
+            handleApplyFilters={handleApplyFilters}
           />
         );
 
@@ -366,7 +420,18 @@ export default function DashboardContent({
                 <DataTable
                   data={ipsData.slice(0, 15)}
                   columns={[
-                    { key: 'ip', label: 'IP Address' },
+                    { 
+                      key: 'ip', 
+                      label: 'IP Address',
+                      render: (value, item) => (
+                        <button 
+                          onClick={() => handleIpClick(item)}
+                          className="text-blue-600 dark:text-blue-400 hover:underline focus:outline-none"
+                        >
+                          {value}
+                        </button>
+                      )
+                    },
                     { key: 'count', label: 'Requests' },
                     { 
                       key: 'location', 
@@ -398,13 +463,27 @@ export default function DashboardContent({
               initialFilters={activeFilters}
             />
             
-            <Card title={`Filtered Logs (${filteredLogs.length} entries)`} height="auto">
-              <DataTable
-                data={filteredLogs}
-                columns={logTableColumns}
-                itemsPerPage={15}
-              />
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <div className="lg:col-span-3">
+                <Card title={`Filtered Logs (${filteredLogs.length} entries)`} height="auto">
+                  <DataTable
+                    data={filteredLogs}
+                    columns={logTableColumns}
+                    itemsPerPage={15}
+                  />
+                </Card>
+              </div>
+              <div className="lg:col-span-1">
+                <ImportExportPanel 
+                  rawLogsData={rawLogsData} 
+                  onImport={(importedLogs) => {
+                    // In a production app, we'd update the logs in a parent component
+                    // For now, we'll just show an alert
+                    alert(`Imported ${importedLogs.length} logs. In a full implementation, these would be processed and added to the dashboard.`);
+                  }} 
+                />
+              </div>
+            </div>
           </>
         );
 
@@ -423,15 +502,23 @@ export default function DashboardContent({
           className="flex-grow"
         />
         
-        <button 
-          onClick={toggleTimeRange}
-          className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 rounded-md text-sm hover:bg-indigo-200 dark:hover:bg-indigo-800 transition duration-200 flex items-center justify-center"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          {timeRange === 'hourly' ? 'Show Daily View' : 'Show Hourly View'}
-        </button>
+        <div className="flex items-center gap-2">
+          <DaySelector 
+            timelineData={timelineData}
+            selectedDay={selectedDay}
+            onDaySelect={setSelectedDay}
+            timeRange={timeRange}
+          />
+          <button 
+            onClick={toggleTimeRange}
+            className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 rounded-md text-sm hover:bg-indigo-200 dark:hover:bg-indigo-800 transition duration-200 flex items-center justify-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {timeRange === 'hourly' ? 'Show Daily View' : 'Show Hourly View'}
+          </button>
+        </div>
       </div>
       
       {renderTabContent()}

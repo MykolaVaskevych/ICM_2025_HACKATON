@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useTheme } from '../providers/ThemeProvider';
 import { format } from 'date-fns';
 import DashboardContent from './DashboardContent';
 
@@ -34,26 +35,12 @@ export default function DashboardPage() {
   // Time period display state
   const [timeRange, setTimeRange] = useState('hourly'); // 'hourly', 'daily'
   
-  // Theme state with localStorage persistence
-  const [darkMode, setDarkMode] = useState(false);
-  
-  // Initialize theme from localStorage
+  // Only initialize time range from localStorage
   useEffect(() => {
-    // Check localStorage for saved theme preference
-    const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
-    const savedTimeRange = typeof window !== 'undefined' ? localStorage.getItem('timeRange') : null;
+    if (typeof window === 'undefined') return;
     
-    if (savedTheme === 'dark') {
-      setDarkMode(true);
-      document.documentElement.classList.add('dark');
-    } else if (savedTheme === 'light') {
-      setDarkMode(false);
-      document.documentElement.classList.remove('dark');
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      // If no saved preference, check system preference
-      setDarkMode(true);
-      document.documentElement.classList.add('dark');
-    }
+    // Get saved time range preference
+    const savedTimeRange = localStorage.getItem('timeRange');
     
     // Set time range from localStorage
     if (savedTimeRange === 'daily') {
@@ -207,6 +194,14 @@ export default function DashboardPage() {
           continue;
         }
         
+        // Handle status code filter - convert to string for comparison
+        if (key === 'status' || key === 'statusCode') {
+          if (String(log.status) !== String(value)) {
+            return false;
+          }
+          continue;
+        }
+        
         // Handle other filters
         if (log[key] !== value) {
           return false;
@@ -312,7 +307,18 @@ export default function DashboardPage() {
       else if (code >= 400 && code < 500) color = 'text-yellow-600 dark:text-yellow-400';
       else if (code >= 500) color = 'text-red-600 dark:text-red-400';
       
-      return <span className={color}>{value}</span>;
+      const handleStatusClick = () => {
+        handleApplyFilters({ status: value });
+      };
+      
+      return (
+        <button 
+          onClick={handleStatusClick}
+          className={`${color} hover:underline focus:outline-none`}
+        >
+          {value}
+        </button>
+      );
     }},
     { key: 'bytes', label: 'Size', render: (value) => `${Math.round(value / 1024)} KB` },
     { key: 'is_bot', label: 'Bot', render: (value) => value ? 'Yes' : 'No' }
@@ -391,19 +397,8 @@ export default function DashboardPage() {
     localStorage.setItem('timeRange', newTimeRange);
   };
 
-  // Toggle dark mode with localStorage persistence
-  const toggleDarkMode = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-    
-    if (newDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
+  // Use the theme context
+  const { darkMode, toggleDarkMode } = useTheme();
 
   if (loading) {
     return (

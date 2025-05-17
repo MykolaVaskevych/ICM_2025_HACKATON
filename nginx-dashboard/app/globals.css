@@ -1,155 +1,160 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
 
+/* Define theme variables for both light and dark mode */
 :root {
-  --background: 255, 255, 255; /* white */
-  --foreground: 23, 23, 23; /* nearly black */
-  
-  --card: 255, 255, 255;
-  --card-foreground: 23, 23, 23;
-  
-  --primary: 79, 70, 229; /* indigo-600 */
-  --primary-foreground: 255, 255, 255;
-  
-  --secondary: 243, 244, 246; /* gray-100 */
-  --secondary-foreground: 31, 41, 55; /* gray-800 */
-  
-  --muted: 243, 244, 246; /* gray-100 */
-  --muted-foreground: 107, 114, 128; /* gray-500 */
-  
-  --accent: 243, 244, 246; /* gray-100 */
-  --accent-foreground: 31, 41, 55; /* gray-800 */
-  
-  --destructive: 239, 68, 68; /* red-500 */
-  --destructive-foreground: 255, 255, 255;
-  
-  --success: 16, 185, 129; /* green-500 */
-  --success-foreground: 255, 255, 255;
-  
-  --warning: 234, 179, 8; /* yellow-500 */
-  --warning-foreground: 255, 255, 255;
-  
-  --info: 59, 130, 246; /* blue-500 */
-  --info-foreground: 255, 255, 255;
-  
-  --border: 229, 231, 235; /* gray-200 */
-  --input: 229, 231, 235; /* gray-200 */
-  --ring: 79, 70, 229; /* indigo-600 */
-  
+  --background-color: 255 255 255;
+  --text-color: 17 24 39;
+  --card-bg: 255 255 255;
+  --card-text: 17 24 39;
+  --border-color: 229 231 235;
+  --primary-color: 79 70 229;
+  --primary-text: 255 255 255;
+  --secondary-bg: 243 244 246;
+  --secondary-text: 107 114 128;
+  --muted-bg: 243 244 246;
+  --muted-text: 107 114 128;
+  --accent-bg: 243 244 246;
+  --accent-text: 17 24 39;
+  --destructive-color: 239 68 68;
+  --success-color: 16 185 129;
+  --warning-color: 245 158 11;
+  --info-color: 59 130 246;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --radius: 0.5rem;
 }
 
 .dark {
-  --background: 17, 24, 39; /* gray-900 */
-  --foreground: 237, 237, 237; /* nearly white */
-  
-  --card: 31, 41, 55; /* gray-800 */
-  --card-foreground: 255, 255, 255;
-  
-  --primary: 79, 70, 229; /* indigo-600 */
-  --primary-foreground: 255, 255, 255;
-  
-  --secondary: 55, 65, 81; /* gray-700 */
-  --secondary-foreground: 243, 244, 246; /* gray-100 */
-  
-  --muted: 55, 65, 81; /* gray-700 */
-  --muted-foreground: 156, 163, 175; /* gray-400 */
-  
-  --accent: 55, 65, 81; /* gray-700 */
-  --accent-foreground: 243, 244, 246; /* gray-100 */
-  
-  --destructive: 248, 113, 113; /* red-400 */
-  --destructive-foreground: 31, 41, 55; /* gray-800 */
-  
-  --success: 52, 211, 153; /* green-400 */
-  --success-foreground: 31, 41, 55;
-  
-  --warning: 251, 191, 36; /* yellow-400 */
-  --warning-foreground: 31, 41, 55;
-  
-  --info: 96, 165, 250; /* blue-400 */
-  --info-foreground: 31, 41, 55;
-  
-  --border: 55, 65, 81; /* gray-700 */
-  --input: 55, 65, 81; /* gray-700 */
-  --ring: 79, 70, 229; /* indigo-600 */
+  --background-color: 17 24 39;
+  --text-color: 249 250 251;
+  --card-bg: 31 41 55;
+  --card-text: 249 250 251;
+  --border-color: 55 65 81;
+  --primary-color: 129 140 248;
+  --primary-text: 31 41 55;
+  --secondary-bg: 55 65 81;
+  --secondary-text: 209 213 219;
+  --muted-bg: 55 65 81;
+  --muted-text: 209 213 219;
+  --accent-bg: 55 65 81;
+  --accent-text: 249 250 251;
+  --destructive-color: 239 68 68;
+  --success-color: 16 185 129;
+  --warning-color: 245 158 11;
+  --info-color: 59 130 246;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
+/* Base styles */
+body {
+  background-color: rgb(var(--background-color));
+  color: rgb(var(--text-color));
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
 }
 
-.bg-background {
-  background-color: rgb(var(--background));
-}
-
-.text-foreground {
-  color: rgb(var(--foreground));
-}
-
-.bg-card {
-  background-color: rgb(var(--card));
-}
-
-.text-card-foreground {
-  color: rgb(var(--card-foreground));
-}
-
-.bg-primary {
-  background-color: rgb(var(--primary));
-}
-
-.text-primary {
-  color: rgb(var(--primary));
-}
-
-/* Custom chart styling */
+/* Chart tooltip styling */
 .chart-tooltip {
   position: absolute;
   padding: 8px 12px;
-  background: rgb(var(--card));
-  color: rgb(var(--card-foreground));
-  border: 1px solid rgb(var(--border));
+  background-color: rgb(var(--card-bg));
+  color: rgb(var(--card-text));
+  border: 1px solid rgb(var(--border-color));
   border-radius: var(--radius);
   pointer-events: none;
   font-size: 12px;
-  z-index: 10;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 1000;
+  box-shadow: var(--shadow-md);
   max-width: 300px;
   white-space: normal;
+}
+
+.chart-tooltip-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.chart-tooltip-value {
+  font-weight: 500;
+  color: rgb(var(--primary-color));
+}
+
+.dark .chart-tooltip-value {
+  color: rgb(var(--primary-color));
+}
+
+.chart-tooltip-info {
+  font-size: 12px;
+  color: rgb(var(--muted-text));
+  margin-top: 4px;
+}
+
+.dark .chart-tooltip-info {
+  color: rgb(var(--muted-text));
 }
 
 /* Ensure SVG text is readable in dark mode */
 .dark .chart-text,
 .dark .tick text {
-  fill: rgb(var(--foreground));
+  fill: rgb(var(--text-color));
 }
 
 /* Chart loading state */
 .chart-skeleton {
-  @apply animate-pulse bg-secondary rounded;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background-color: rgb(var(--secondary-bg));
+  border-radius: var(--radius);
   height: 100%;
   width: 100%;
 }
 
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Card styling */
+.bg-card {
+  background-color: rgb(var(--card-bg));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
 /* Table styling */
 .data-table th {
-  @apply bg-secondary text-secondary-foreground text-xs uppercase tracking-wider py-3 px-6 text-left font-medium;
+  background-color: rgb(var(--secondary-bg));
+  color: rgb(var(--secondary-text));
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1.5rem;
+  text-align: left;
+  font-weight: 500;
 }
 
 .data-table tr:nth-child(even) {
-  @apply bg-muted/50;
+  background-color: rgba(var(--muted-bg), 0.3);
+}
+
+.dark .data-table tr:nth-child(even) {
+  background-color: rgba(var(--muted-bg), 0.3);
 }
 
 .data-table td {
-  @apply py-4 px-6 text-sm;
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+}
+
+/* Chart bar improvements */
+.chart-bar {
+  min-height: 2px;
 }
 
 /* Responsive breakpoints for charts */
@@ -163,4 +168,68 @@
   .chart-container {
     height: 200px !important;
   }
+}
+
+/* Button styles */
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: rgb(var(--primary-color));
+  color: rgb(var(--primary-text));
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.dark .btn-primary {
+  background-color: rgb(var(--primary-color));
+  color: rgb(var(--primary-text));
+}
+
+.dark .btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background-color: rgb(var(--secondary-bg));
+  color: rgb(var(--text-color));
+}
+
+.btn-secondary:hover {
+  opacity: 0.9;
+}
+
+.dark .btn-secondary {
+  background-color: rgb(var(--secondary-bg));
+  color: rgb(var(--text-color));
+}
+
+.dark .btn-secondary:hover {
+  opacity: 0.9;
+}
+
+/* Input styles */
+.form-input, .form-select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgb(var(--border-color));
+  border-radius: var(--radius);
+  background-color: rgb(var(--background-color));
+  color: rgb(var(--text-color));
+}
+
+.form-input:focus, .form-select:focus {
+  outline: none;
+  border-color: rgb(var(--primary-color));
+  box-shadow: 0 0 0 2px rgba(var(--primary-color), 0.25);
 }

@@ -14,7 +14,8 @@ export default function ErrorAnalysis({
   formatTimelineDataFn,
   formattedTimelineData,
   formatDailyData,
-  statusCodeColors
+  statusCodeColors,
+  handleApplyFilters = () => {}
 }) {
   // Get error-only status codes
   const errorStatusData = useMemo(() => {
@@ -120,6 +121,11 @@ export default function ErrorAnalysis({
               xLabel="Status Code"
               yLabel="Count"
               colors={[statusCodeColors['4xx'], statusCodeColors['5xx']]}
+              showLegend={true}
+              legendItems={[
+                { label: 'Client Errors (4xx)', color: statusCodeColors['4xx'] },
+                { label: 'Server Errors (5xx)', color: statusCodeColors['5xx'] }
+              ]}
             />
           </div>
         </div>

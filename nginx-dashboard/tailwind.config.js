@@ -9,39 +9,39 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: 'rgb(var(--background) / <alpha-value>)',
-        foreground: 'rgb(var(--foreground) / <alpha-value>)',
+        background: 'rgb(var(--background-color) / <alpha-value>)',
+        foreground: 'rgb(var(--text-color) / <alpha-value>)',
         
-        card: 'rgb(var(--card) / <alpha-value>)',
-        'card-foreground': 'rgb(var(--card-foreground) / <alpha-value>)',
+        card: 'rgb(var(--card-bg) / <alpha-value>)',
+        'card-foreground': 'rgb(var(--card-text) / <alpha-value>)',
         
-        primary: 'rgb(var(--primary) / <alpha-value>)',
-        'primary-foreground': 'rgb(var(--primary-foreground) / <alpha-value>)',
+        primary: 'rgb(var(--primary-color) / <alpha-value>)',
+        'primary-foreground': 'rgb(var(--primary-text) / <alpha-value>)',
         
-        secondary: 'rgb(var(--secondary) / <alpha-value>)',
-        'secondary-foreground': 'rgb(var(--secondary-foreground) / <alpha-value>)',
+        secondary: 'rgb(var(--secondary-bg) / <alpha-value>)',
+        'secondary-foreground': 'rgb(var(--secondary-text) / <alpha-value>)',
         
-        muted: 'rgb(var(--muted) / <alpha-value>)',
-        'muted-foreground': 'rgb(var(--muted-foreground) / <alpha-value>)',
+        muted: 'rgb(var(--muted-bg) / <alpha-value>)',
+        'muted-foreground': 'rgb(var(--muted-text) / <alpha-value>)',
         
-        accent: 'rgb(var(--accent) / <alpha-value>)',
-        'accent-foreground': 'rgb(var(--accent-foreground) / <alpha-value>)',
+        accent: 'rgb(var(--accent-bg) / <alpha-value>)',
+        'accent-foreground': 'rgb(var(--accent-text) / <alpha-value>)',
         
-        destructive: 'rgb(var(--destructive) / <alpha-value>)',
-        'destructive-foreground': 'rgb(var(--destructive-foreground) / <alpha-value>)',
+        destructive: 'rgb(var(--destructive-color) / <alpha-value>)',
+        'destructive-foreground': 'rgb(255 255 255 / <alpha-value>)',
         
-        success: 'rgb(var(--success) / <alpha-value>)',
-        'success-foreground': 'rgb(var(--success-foreground) / <alpha-value>)',
+        success: 'rgb(var(--success-color) / <alpha-value>)',
+        'success-foreground': 'rgb(255 255 255 / <alpha-value>)',
         
-        warning: 'rgb(var(--warning) / <alpha-value>)',
-        'warning-foreground': 'rgb(var(--warning-foreground) / <alpha-value>)',
+        warning: 'rgb(var(--warning-color) / <alpha-value>)',
+        'warning-foreground': 'rgb(255 255 255 / <alpha-value>)',
         
-        info: 'rgb(var(--info) / <alpha-value>)',
-        'info-foreground': 'rgb(var(--info-foreground) / <alpha-value>)',
+        info: 'rgb(var(--info-color) / <alpha-value>)',
+        'info-foreground': 'rgb(255 255 255 / <alpha-value>)',
         
-        border: 'rgb(var(--border) / <alpha-value>)',
-        input: 'rgb(var(--input) / <alpha-value>)',
-        ring: 'rgb(var(--ring) / <alpha-value>)',
+        border: 'rgb(var(--border-color) / <alpha-value>)',
+        input: 'rgb(var(--border-color) / <alpha-value>)',
+        ring: 'rgb(var(--primary-color) / <alpha-value>)',
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -49,23 +49,9 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace'],
-      },
-      keyframes: {
-        "accordion-down": {
-          from: { height: 0 },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: 0 },
-        },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-      },
+        sans: ['ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['ui-monospace', 'monospace'],
+      }
     },
   },
   plugins: [],
