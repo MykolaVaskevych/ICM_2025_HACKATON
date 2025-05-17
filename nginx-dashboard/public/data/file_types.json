@@ -5,11 +5,11 @@
   },
   {
     "type": "php",
-    "count": 2465
+    "count": 2543
   },
   {
     "type": "no_extension",
-    "count": 1356
+    "count": 1274
   },
   {
     "type": "js",
@@ -64,11 +64,11 @@
     "count": 3
   },
   {
-    "type": "",
+    "type": "backup",
     "count": 3
   },
   {
-    "type": "backup",
+    "type": "gitconfig",
     "count": 3
   },
   {

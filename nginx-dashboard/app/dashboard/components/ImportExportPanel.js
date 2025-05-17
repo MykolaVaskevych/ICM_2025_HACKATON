@@ -6,7 +6,7 @@ const isBrowser = typeof window !== 'undefined';
 
 export default function ImportExportPanel({ rawLogsData, onImport }) {
   const [importStatus, setImportStatus] = useState('');
-  const [exportFormat, setExportFormat] = useState('json');
+  const [isLoading, setIsLoading] = useState(false);
   
   // Handle file upload for import
   const handleFileUpload = async (e) => {
@@ -15,161 +15,361 @@ export default function ImportExportPanel({ rawLogsData, onImport }) {
     const file = e.target.files[0];
     if (!file) return;
     
-    setImportStatus('Loading...');
+    // Reset the file input value to allow uploading the same file again if needed
+    e.target.value = null;
+    
+    setIsLoading(true);
+    setImportStatus(`Uploading and processing file: ${file.name} (${(file.size / 1024).toFixed(2)} KB)...`);
     
     try {
-      const fileExt = file.name.split('.').pop().toLowerCase();
+      // Create form data for upload
+      const formData = new FormData();
+      formData.append('file', file);
       
-      if (fileExt === 'json') {
-        // Import JSON
-        const text = await file.text();
-        const data = JSON.parse(text);
+      // Upload to server API
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok || result.status === 'error') {
+        console.error('Server returned error:', result);
+        throw new Error(result.error || 'Failed to process file');
+      }
+      
+      // Successfully parsed logs
+      if (result.status === 'success') {
+        // Display success message with stats
+        setImportStatus(
+          `${result.message}. Stats: ${result.stats.totalRequests} requests, ${result.stats.uniqueIPs} unique IPs, ${result.stats.dataTransferred} transferred, ${result.stats.botPercentage} bot traffic`
+        );
         
-        if (Array.isArray(data)) {
-          onImport(data);
-          setImportStatus(`Successfully imported ${data.length} log entries.`);
-        } else {
-          setImportStatus('Invalid JSON format. Expected an array of log entries.');
-        }
-      } else if (fileExt === 'gz') {
-        // This would normally require server-side processing
-        setImportStatus('Gzip import requires server-side processing. Please use the Python script for importing .gz files.');
-      } else if (fileExt === 'txt' || fileExt === 'log') {
-        // Basic text log import
-        const text = await file.text();
-        const lines = text.split('\n').filter(line => line.trim());
-        
-        // Simple parsing - in real app, use the log_parser.py logic here
-        const parsedLogs = lines.map(line => {
-          // Very basic parsing to extract just a few fields
-          const ipMatch = line.match(/(\d+\.\d+\.\d+\.\d+)/);
-          const dateMatch = line.match(/\[([^\]]+)\]/);
-          const requestMatch = line.match(/"([^"]+)"/);
-          const statusMatch = line.match(/ (\d{3}) /);
-          
-          return {
-            ip: ipMatch ? ipMatch[1] : 'unknown',
-            timestamp: dateMatch ? new Date(dateMatch[1].replace(':', ' ')).toISOString() : new Date().toISOString(),
-            request: requestMatch ? requestMatch[1] : 'unknown',
-            status: statusMatch ? statusMatch[1] : '200',
-            bytes: 0,
-            path: requestMatch ? requestMatch[1].split(' ')[1] : '/',
-            method: requestMatch ? requestMatch[1].split(' ')[0] : 'GET',
-            user_agent: 'unknown',
-            is_bot: false
-          };
-        });
-        
-        onImport(parsedLogs);
-        setImportStatus(`Imported ${parsedLogs.length} log entries.`);
+        // Refresh the page to show the new data after a short delay
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
-        setImportStatus('Unsupported file format. Please use .json, .log, or .txt.');
+        setImportStatus('Invalid response format from server.');
       }
     } catch (error) {
       console.error('Import error:', error);
-      setImportStatus(`Error importing file: ${error.message}`);
+      setImportStatus(`Error importing file: ${error.message}. Make sure the file is a valid NGINX log file in the correct format.`);
+    } finally {
+      setIsLoading(false);
     }
   };
   
-  // Export data to JSON
-  const exportJSON = async () => {
-    try {
-      if (!isBrowser) return;
-      
-      // Dynamically import file-saver
-      const { saveAs } = await import('file-saver');
-      
-      const jsonStr = JSON.stringify(rawLogsData, null, 2);
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      saveAs(blob, 'nginx_logs_export.json');
-    } catch (error) {
-      console.error('JSON export error:', error);
-      alert('Error exporting data: ' + error.message);
-    }
-  };
-  
-  // Export data to CSV/Excel
-  const exportExcel = async () => {
-    try {
-      if (!isBrowser) return;
-      
-      // Dynamically import xlsx
-      const XLSX = await import('xlsx');
-      
-      // Prepare data for Excel format
-      const excelData = rawLogsData.map(log => ({
-        IP: log.ip,
-        Timestamp: log.timestamp,
-        Method: log.method,
-        Path: log.path,
-        Status: log.status,
-        'Bytes Transferred': log.bytes,
-        'User Agent': log.user_agent,
-        'Is Bot': log.is_bot ? 'Yes' : 'No'
-      }));
-      
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'NGINX Logs');
-      XLSX.writeFile(wb, 'nginx_logs_export.xlsx');
-    } catch (error) {
-      console.error('Excel export error:', error);
-      alert('Error exporting to Excel: ' + error.message);
-    }
-  };
-  
-  // Export data to PDF
+  // Export data to PDF with charts
   const exportPDF = async () => {
     try {
       if (!isBrowser) return;
+      
+      setIsLoading(true);
       
       // Dynamically import jspdf and jspdf-autotable
       const jsPDFModule = await import('jspdf');
       const jsPDF = jsPDFModule.jsPDF;
       await import('jspdf-autotable');
       
+      // Create a document with portrait orientation
       const doc = new jsPDF();
       
       // Add title
-      doc.setFontSize(16);
-      doc.text('NGINX Logs Export', 14, 22);
+      doc.setFontSize(22);
+      doc.setTextColor(79, 70, 229); // Indigo color
+      doc.text('NGINX Log Analysis Report', 105, 15, { align: 'center' });
       
       // Add timestamp
       doc.setFontSize(10);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
       
-      // Create table data
-      const tableData = rawLogsData.map(log => [
-        log.ip,
-        new Date(log.timestamp).toLocaleString(),
-        log.status,
-        log.method,
-        log.path.substring(0, 30) + (log.path.length > 30 ? '...' : ''),
-        log.is_bot ? 'Yes' : 'No'
-      ]);
+      // Fetch all data files
+      const dataFiles = [
+        'summary.json',
+        'status_codes.json', 
+        'status_categories.json',
+        'bot_user.json',
+        'http_methods.json',
+        'top_endpoints.json',
+        'top_ips.json',
+        'top_referrers.json'
+      ];
       
-      // Create table with autotable
-      doc.autoTable({
-        startY: 35,
-        head: [['IP Address', 'Timestamp', 'Status', 'Method', 'Path', 'Bot']],
-        body: tableData.slice(0, 100), // Limit to 100 rows for PDF size
-        didDrawPage: function(data) {
-          doc.text('Page ' + doc.internal.getNumberOfPages(), data.settings.margin.left, doc.internal.pageSize.height - 10);
-        },
-        margin: { top: 35 },
-        headStyles: { fillColor: [79, 70, 229] }
-      });
+      let yPosition = 30;
       
-      // Add note if records were limited
-      if (rawLogsData.length > 100) {
-        const lastY = doc.lastAutoTable.finalY + 10;
-        doc.text(`Note: Export limited to 100 records out of ${rawLogsData.length} total.`, 14, lastY);
+      // 1. Add summary data
+      try {
+        const response = await fetch('/data/summary.json');
+        const summaryData = await response.json();
+        
+        doc.setFontSize(16);
+        doc.text('Summary Statistics', 14, yPosition);
+        yPosition += 10;
+        
+        const tableData = [
+          ['Total Requests', summaryData.total_requests?.toLocaleString() || 'N/A'],
+          ['Unique IPs', summaryData.unique_ips?.toLocaleString() || 'N/A'],
+          ['Data Transferred', `${summaryData.total_transferred_mb?.toFixed(2) || 'N/A'} MB`],
+          ['Bot Percentage', `${summaryData.bot_percentage?.toFixed(1) || 'N/A'}%`],
+          ['Success Rate', `${summaryData.success_percentage?.toFixed(1) || 'N/A'}%`],
+          ['Error Rate', `${summaryData.error_percentage?.toFixed(1) || 'N/A'}%`],
+          ['Most Common Status', summaryData.most_common_status || 'N/A'],
+          ['Most Common Method', summaryData.most_common_method || 'N/A'],
+          ['Most Popular Endpoint', summaryData.most_popular_endpoint || 'N/A']
+        ];
+        
+        doc.autoTable({
+          startY: yPosition,
+          head: [['Metric', 'Value']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [79, 70, 229] },
+          margin: { top: 30, right: 14, bottom: 20, left: 14 },
+        });
+        
+        yPosition = doc.autoTable.previous.finalY + 15;
+      } catch (error) {
+        console.error('Error adding summary data:', error);
+        doc.setFontSize(12);
+        doc.text('Error loading summary statistics', 14, yPosition);
+        yPosition += 10;
       }
       
-      doc.save('nginx_logs_export.pdf');
+      // 2. Add status code distribution
+      try {
+        const response = await fetch('/data/status_codes.json');
+        const statusData = await response.json();
+        
+        // Add new page if needed
+        if (yPosition > 220) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        
+        doc.setFontSize(16);
+        doc.text('HTTP Status Code Distribution', 14, yPosition);
+        yPosition += 10;
+        
+        // Convert data for table
+        const tableData = statusData.map(item => [
+          `${item.status}`,
+          item.count.toLocaleString(),
+          `${((item.count / rawLogsData.length) * 100).toFixed(1)}%`
+        ]);
+        
+        doc.autoTable({
+          startY: yPosition,
+          head: [['Status Code', 'Count', 'Percentage']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [79, 70, 229] },
+          margin: { top: yPosition, right: 14, bottom: 20, left: 14 },
+        });
+        
+        yPosition = doc.autoTable.previous.finalY + 15;
+      } catch (error) {
+        console.error('Error adding status data:', error);
+      }
+      
+      // 3. Add bot vs. user traffic
+      try {
+        const response = await fetch('/data/bot_user.json');
+        const botData = await response.json();
+        
+        // Add new page if needed
+        if (yPosition > 220) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        
+        doc.setFontSize(16);
+        doc.text('Bot vs. User Traffic', 14, yPosition);
+        yPosition += 10;
+        
+        // Convert data for table
+        const tableData = botData.map(item => [
+          item.type,
+          item.count.toLocaleString(),
+          `${item.percentage.toFixed(1)}%`
+        ]);
+        
+        doc.autoTable({
+          startY: yPosition,
+          head: [['Type', 'Count', 'Percentage']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [79, 70, 229] },
+          margin: { top: yPosition, right: 14, bottom: 20, left: 14 },
+        });
+        
+        yPosition = doc.autoTable.previous.finalY + 15;
+      } catch (error) {
+        console.error('Error adding bot data:', error);
+      }
+      
+      // 4. Add top endpoints
+      try {
+        const response = await fetch('/data/top_endpoints.json');
+        const endpointData = await response.json();
+        
+        // Add new page 
+        doc.addPage();
+        yPosition = 20;
+        
+        doc.setFontSize(16);
+        doc.text('Top Requested Endpoints', 14, yPosition);
+        yPosition += 10;
+        
+        // Convert data for table - limit to top 15
+        const tableData = endpointData.slice(0, 15).map(item => [
+          item.endpoint.length > 40 ? item.endpoint.substring(0, 37) + '...' : item.endpoint,
+          item.count.toLocaleString()
+        ]);
+        
+        doc.autoTable({
+          startY: yPosition,
+          head: [['Endpoint', 'Requests']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [79, 70, 229] },
+          margin: { top: yPosition, right: 14, bottom: 20, left: 14 },
+        });
+        
+        yPosition = doc.autoTable.previous.finalY + 15;
+      } catch (error) {
+        console.error('Error adding endpoint data:', error);
+      }
+      
+      // 5. Add top IPs
+      try {
+        const response = await fetch('/data/top_ips.json');
+        const ipData = await response.json();
+        
+        // Add new page if needed
+        if (yPosition > 180) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        
+        doc.setFontSize(16);
+        doc.text('Top Client IPs', 14, yPosition);
+        yPosition += 10;
+        
+        // Convert data for table - limit to top 15
+        const tableData = ipData.slice(0, 15).map(item => [
+          item.ip,
+          item.count.toLocaleString(),
+          `${((item.count / rawLogsData.length) * 100).toFixed(1)}%`
+        ]);
+        
+        doc.autoTable({
+          startY: yPosition,
+          head: [['IP Address', 'Requests', 'Percentage']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [79, 70, 229] },
+          margin: { top: yPosition, right: 14, bottom: 20, left: 14 },
+        });
+        
+        yPosition = doc.autoTable.previous.finalY + 15;
+      } catch (error) {
+        console.error('Error adding IP data:', error);
+      }
+      
+      // 6. Add HTTP methods
+      try {
+        const response = await fetch('/data/http_methods.json');
+        const methodData = await response.json();
+        
+        // Add new page
+        doc.addPage();
+        yPosition = 20;
+        
+        doc.setFontSize(16);
+        doc.text('HTTP Methods Distribution', 14, yPosition);
+        yPosition += 10;
+        
+        // Convert data for table
+        const tableData = methodData.map(item => [
+          item.method,
+          item.count.toLocaleString(),
+          `${((item.count / rawLogsData.length) * 100).toFixed(1)}%`
+        ]);
+        
+        doc.autoTable({
+          startY: yPosition,
+          head: [['Method', 'Count', 'Percentage']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [79, 70, 229] },
+          margin: { top: yPosition, right: 14, bottom: 20, left: 14 },
+        });
+        
+        yPosition = doc.autoTable.previous.finalY + 15;
+      } catch (error) {
+        console.error('Error adding method data:', error);
+      }
+      
+      // 7. Add referrers
+      try {
+        const response = await fetch('/data/top_referrers.json');
+        const referrerData = await response.json();
+        
+        // Add new page if needed
+        if (yPosition > 160) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        
+        doc.setFontSize(16);
+        doc.text('Top Referrers', 14, yPosition);
+        yPosition += 10;
+        
+        // Convert data for table - limit to top 10
+        const tableData = referrerData.slice(0, 10).map(item => [
+          item.referrer.length > 40 ? item.referrer.substring(0, 37) + '...' : item.referrer,
+          item.count.toLocaleString()
+        ]);
+        
+        doc.autoTable({
+          startY: yPosition,
+          head: [['Referrer', 'Count']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [79, 70, 229] },
+          margin: { top: yPosition, right: 14, bottom: 20, left: 14 },
+        });
+        
+        yPosition = doc.autoTable.previous.finalY + 15;
+      } catch (error) {
+        console.error('Error adding referrer data:', error);
+      }
+      
+      // Add page numbers
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Page ${i} of ${totalPages}`, 170, 285);
+      }
+      
+      // Add footer note
+      doc.setPage(totalPages);
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text('NGINX Log Analyzer Dashboard', 105, 285, { align: 'center' });
+      
+      doc.save('nginx_logs_report.pdf');
+      setIsLoading(false);
     } catch (error) {
       console.error('PDF export error:', error);
       alert('Error exporting to PDF: ' + error.message);
+      setIsLoading(false);
     }
   };
   
@@ -180,19 +380,8 @@ export default function ImportExportPanel({ rawLogsData, onImport }) {
       return;
     }
     
-    switch (exportFormat) {
-      case 'json':
-        exportJSON();
-        break;
-      case 'excel':
-        exportExcel();
-        break;
-      case 'pdf':
-        exportPDF();
-        break;
-      default:
-        exportJSON();
-    }
+    // Always use PDF export 
+    exportPDF();
   };
   
   return (
@@ -204,53 +393,42 @@ export default function ImportExportPanel({ rawLogsData, onImport }) {
         <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Import Logs</h4>
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="flex-grow">
-            <label className="block text-sm font-medium cursor-pointer px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-center">
-              <span>Choose File</span>
+            <label className={`block text-sm font-medium cursor-pointer px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-center ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              <span>{isLoading ? 'Processing...' : 'Choose File'}</span>
               <input
                 type="file"
-                accept=".json,.txt,.log,.gz"
+                accept=".json,.txt,.log,.gz,*"
                 onChange={handleFileUpload}
                 className="sr-only"
+                disabled={isLoading}
               />
             </label>
           </div>
-          {importStatus && (
-            <div className="text-sm mt-2 sm:mt-0 sm:ml-2">
-              <span className={importStatus.includes('Error') ? 'text-red-500' : 'text-green-500'}>
-                {importStatus}
-              </span>
-            </div>
-          )}
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          Supported formats: JSON, text logs (.txt, .log). For gzip files, use Python import script.
+          Supported formats: JSON, text logs (.txt, .log), files without extensions, and gzip (.gz) log files.
         </p>
+        {importStatus && (
+          <div className={`mt-3 p-3 rounded text-sm ${importStatus.includes('Error') ? 'bg-red-50 text-red-700 dark:bg-red-900 dark:text-red-200' : 'bg-green-50 text-green-700 dark:bg-green-900 dark:text-green-200'}`}>
+            {importStatus}
+          </div>
+        )}
       </div>
       
       {/* Export Section */}
       <div>
-        <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Export Logs</h4>
+        <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Export Report</h4>
         <div className="flex flex-col sm:flex-row gap-2">
-          <div className="flex-grow">
-            <select
-              value={exportFormat}
-              onChange={(e) => setExportFormat(e.target.value)}
-              className="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-700 dark:text-gray-200"
-            >
-              <option value="json">JSON Format</option>
-              <option value="excel">Excel Format</option>
-              <option value="pdf">PDF Report</option>
-            </select>
-          </div>
           <button
             onClick={handleExport}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-sm transition-colors"
+            className={`px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-sm transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={isLoading}
           >
-            Export
+            {isLoading ? 'Processing...' : 'Export to PDF'}
           </button>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          Export all {rawLogsData?.length || 0} log entries in selected format.
+          PDF export includes statistics and analysis from the dashboard.
         </p>
       </div>
     </div>

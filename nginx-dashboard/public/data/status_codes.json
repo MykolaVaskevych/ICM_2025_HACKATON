@@ -4,51 +4,51 @@
     "count": 7693
   },
   {
-    "status": "405",
-    "count": 205
+    "status": "206",
+    "count": 8
   },
   {
     "status": "301",
     "count": 365
   },
   {
-    "status": "499",
-    "count": 861
-  },
-  {
-    "status": "403",
-    "count": 101
-  },
-  {
-    "status": "206",
-    "count": 8
-  },
-  {
-    "status": "404",
-    "count": 640
-  },
-  {
-    "status": "503",
-    "count": 13
-  },
-  {
     "status": "302",
     "count": 76
+  },
+  {
+    "status": "304",
+    "count": 4
   },
   {
     "status": "400",
     "count": 1
   },
   {
-    "status": "500",
-    "count": 31
+    "status": "403",
+    "count": 101
+  },
+  {
+    "status": "404",
+    "count": 640
+  },
+  {
+    "status": "405",
+    "count": 205
   },
   {
     "status": "409",
     "count": 2
   },
   {
-    "status": "304",
-    "count": 4
+    "status": "499",
+    "count": 861
+  },
+  {
+    "status": "500",
+    "count": 31
+  },
+  {
+    "status": "503",
+    "count": 13
   }
 ]

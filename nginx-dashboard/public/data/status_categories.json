@@ -2,21 +2,21 @@
   {
     "category": "Success (2xx)",
     "count": 7701,
-    "percentage": 77.0
+    "percentage": 77.01
   },
   {
     "category": "Redirect (3xx)",
     "count": 445,
-    "percentage": 4.5
+    "percentage": 4.45
   },
   {
     "category": "Client Error (4xx)",
     "count": 1810,
-    "percentage": 18.1
+    "percentage": 18.099999999999998
   },
   {
     "category": "Server Error (5xx)",
     "count": 44,
-    "percentage": 0.4
+    "percentage": 0.44
   }
 ]

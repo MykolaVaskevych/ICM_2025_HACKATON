@@ -2,12 +2,12 @@
   "total_requests": 10000,
   "total_transferred_mb": 902.88,
   "unique_ips": 1433,
-  "unique_endpoints": 5312,
+  "unique_endpoints": 50,
   "bot_percentage": 51.3,
-  "success_percentage": 77.0,
+  "success_percentage": 77,
   "error_percentage": 18.5,
   "most_common_status": "200",
   "most_common_method": "GET",
   "most_popular_endpoint": "/robots.txt",
-  "generated_at": "2025-05-17T11:52:29.889591"
+  "generated_at": "2025-05-17T20:34:51.448Z"
 }

@@ -23,7 +23,8 @@ export default function D3Chart({
   showTooltip = true,
   className = '',
   tooltipFormatter = null,
-  description = ''
+  description = '',
+  id = ''
 }) {
   const containerRef = useRef(null);
   const svgRef = useRef(null);
@@ -571,8 +572,8 @@ export default function D3Chart({
       {isLoading && (
         <div className="chart-skeleton h-full w-full rounded"></div>
       )}
-      <div className={`w-full h-full ${isLoading ? 'hidden' : ''}`}>
-        <svg ref={svgRef} width="100%" height="100%"></svg>
+      <div className={`w-full h-full ${isLoading ? 'hidden' : ''} tab-content`} data-chart-type={type} data-chart-title={title}>
+        <svg ref={svgRef} width="100%" height="100%" id={id || `chart-${type}-${xKey}-${yKey}`}></svg>
         {showTooltip && <div ref={tooltipDiv} className="chart-tooltip"></div>}
       </div>
     </div>

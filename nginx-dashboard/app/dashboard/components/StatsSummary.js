@@ -69,7 +69,7 @@ export default function StatsSummary({ stats }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stats-summary dashboard-summary">
       {statCards.map((card) => (
         <div key={card.id} className="bg-white dark:bg-gray-800 shadow rounded-lg p-5 transition duration-300 hover:shadow-lg">
           <div className="flex items-center">

@@ -1,7 +1,7 @@
 [
   {
     "method": "GET",
-    "count": 8285
+    "count": 8286
   },
   {
     "method": "POST",
@@ -10,9 +10,5 @@
   {
     "method": "HEAD",
     "count": 34
-  },
-  {
-    "method": "",
-    "count": 1
   }
 ]

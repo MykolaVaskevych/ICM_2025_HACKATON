@@ -32,6 +32,9 @@ export default function DashboardPage() {
   // Add state for data loading errors
   const [loadingError, setLoadingError] = useState(null);
   
+  // Add state to track if data has been initialized
+  const [initialized, setInitialized] = useState(false);
+  
   // Time period display state
   const [timeRange, setTimeRange] = useState('hourly'); // 'hourly', 'daily'
   
@@ -62,12 +65,42 @@ export default function DashboardPage() {
     '5xx': '#ef4444'  // Red - Server Error
   };
 
+  // Check if data has been initialized
+  useEffect(() => {
+    const checkInitialization = async () => {
+      try {
+        const response = await fetch('/api/data/status');
+        const data = await response.json();
+        setInitialized(data.initialized);
+      } catch (error) {
+        console.error("Error checking data initialization:", error);
+        setInitialized(false);
+      }
+    };
+    
+    checkInitialization();
+  }, []);
+
   // Fetch data and handle errors
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setLoadingError(null);
+        
+        // Check first if data has been initialized
+        const statusResponse = await fetch('/api/data/status');
+        const statusData = await statusResponse.json();
+        
+        if (!statusData.initialized) {
+          // No data has been uploaded yet, set initialized state to false
+          setInitialized(false);
+          setLoading(false);
+          return;
+        }
+        
+        // Data is initialized, proceed with fetch
+        setInitialized(true);
         
         const [
           summary, statusCodes, timeline, daily, traffic, endpoints, 
@@ -399,6 +432,41 @@ export default function DashboardPage() {
 
   // Use the theme context
   const { darkMode, toggleDarkMode } = useTheme();
+  
+  // Handle file upload for empty state
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Clear previous status
+    setLoadingError(null);
+    setLoading(true);
+    
+    try {
+      // Create form data
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Upload file
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        // Refresh the page to show data
+        window.location.reload();
+      } else {
+        setLoadingError(`Error: ${result.error || 'Failed to process file'}`);
+      }
+    } catch (error) {
+      setLoadingError(`Error importing file: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -407,6 +475,46 @@ export default function DashboardPage() {
           <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
           <h2 className="text-xl font-medium text-gray-900 dark:text-white mt-4">Loading dashboard data...</h2>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Please wait while we fetch the log analysis data.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // If no data has been uploaded yet, show welcome screen
+  if (!initialized) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 text-center">
+          <h1 className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-4">NGINX Log Analyzer Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-8">Welcome to the NGINX Log Analyzer. To get started, please import your log files.</p>
+          
+          <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg mb-8">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Import Logs</h2>
+            <div className="flex flex-col items-center space-y-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Supported formats: JSON, text logs (.txt, .log), files without extensions, and gzip (.gz) log files.
+              </p>
+              <label className="block text-sm font-medium cursor-pointer px-6 py-3 border border-indigo-300 dark:border-indigo-600 rounded-md bg-indigo-50 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-800 transition-colors text-center w-full max-w-xs">
+                <span>Choose Log File</span>
+                <input
+                  type="file"
+                  accept=".json,.txt,.log,.gz,*"
+                  onChange={handleFileUpload}
+                  className="sr-only"
+                  disabled={loading}
+                />
+              </label>
+              {loadingError && (
+                <div className="mt-4 p-3 bg-red-50 text-red-700 dark:bg-red-900 dark:text-red-100 rounded-md text-sm">
+                  {loadingError}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            <p>After importing, the dashboard will display comprehensive visualizations of your NGINX log data.</p>
+          </div>
         </div>
       </div>
     );
