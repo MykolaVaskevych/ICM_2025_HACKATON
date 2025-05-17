@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./providers/ThemeProvider";
+import { ToasterProvider } from "./providers/ToasterProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "NGINX Log Analyzer Dashboard",
-  description: "Interactive dashboard for analyzing NGINX access logs",
+  description: "Interactive dashboard for analyzing NGINX access logs with database integration",
 };
 
 export default function RootLayout({ children }) {
@@ -25,6 +26,7 @@ export default function RootLayout({ children }) {
         suppressHydrationWarning
       >
         <ThemeProvider>
+          <ToasterProvider />
           {children}
         </ThemeProvider>
       </body>

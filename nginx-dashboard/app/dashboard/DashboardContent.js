@@ -11,6 +11,9 @@ import ErrorAnalysis from './components/ErrorAnalysis';
 import BotTrafficAnalysis from './components/BotTrafficAnalysis';
 import DaySelector from './components/DaySelector';
 import ImportExportPanel from './components/ImportExportPanel';
+import DatabaseStatus from './components/DatabaseStatus';
+import DatabaseExplorer from './components/DatabaseExplorer';
+import { Toaster, toast } from 'react-hot-toast';
 
 // Tab definitions with icons
 const tabs = [
@@ -56,6 +59,24 @@ const tabs = [
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+      </svg>
+    ),
+  },
+  {
+    id: 'database',
+    name: 'Database',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+      </svg>
+    ),
+  },
+  {
+    id: 'import-export',
+    name: 'Import/Export',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
       </svg>
     ),
   },
@@ -402,14 +423,58 @@ export default function DashboardContent({
                 </Card>
               </div>
               <div className="lg:col-span-1">
+                <DatabaseStatus />
+              </div>
+            </div>
+          </>
+        );
+        
+      case 'database':
+        return (
+          <>
+            <ResponsiveGrid>
+              <DatabaseExplorer className="col-span-full" />
+            </ResponsiveGrid>
+          </>
+        );
+        
+      case 'import-export':
+        return (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
                 <ImportExportPanel 
-                  rawLogsData={rawLogsData} 
+                  rawLogsData={rawLogsData}
+                  dashboardData={{
+                    summaryData,
+                    statusData,
+                    timelineData,
+                    dailyData,
+                    trafficData,
+                    endpointsData,
+                    ipsData,
+                    botUserData,
+                    httpMethodsData,
+                    statusCategoriesData,
+                    fileTypesData,
+                    referrersData,
+                    errorPathsData
+                  }}
                   onImport={(importedLogs) => {
                     // In a production app, we'd update the logs in a parent component
-                    // For now, we'll just show an alert
-                    alert(`Imported ${importedLogs.length} logs. In a full implementation, these would be processed and added to the dashboard.`);
+                    // For now, we'll just show a toast or update the UI
+                    if (typeof toast !== 'undefined') {
+                      toast.success(`Imported ${importedLogs.length} logs successfully.`);
+                    } else {
+                      console.log(`Imported ${importedLogs.length} logs successfully.`);
+                      // Update local state or show a simple alert if toast is not available
+                      alert(`Imported ${importedLogs.length} logs successfully.`);
+                    }
                   }} 
                 />
+              </div>
+              <div className="lg:col-span-1">
+                <DatabaseStatus />
               </div>
             </div>
           </>

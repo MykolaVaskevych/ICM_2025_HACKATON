@@ -5,6 +5,8 @@ import { useTheme } from '../providers/ThemeProvider';
 import { format } from 'date-fns';
 import DashboardContent from './DashboardContent';
 
+// Always use API for data fetching
+
 export default function DashboardPage() {
   // State for all data
   const [summaryData, setSummaryData] = useState(null);
@@ -62,148 +64,148 @@ export default function DashboardPage() {
     '5xx': '#ef4444'  // Red - Server Error
   };
 
-  // Fetch data and handle errors
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setLoadingError(null);
-        
-        const [
-          summary, statusCodes, timeline, daily, traffic, endpoints, 
-          ips, botUser, methods, categories, fileTypes, referrers, 
-          errorPaths, logs
-        ] = await Promise.all([
-          fetch('/data/summary.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch summary data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/status_codes.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch status codes data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/requests_timeline.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch timeline data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/daily_requests.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch daily data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/traffic_timeline.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch traffic data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/top_endpoints.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch endpoints data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/top_ips.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch IPs data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/bot_user.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch bot/user data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/http_methods.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch HTTP methods data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/status_categories.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch status categories data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/file_types.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch file types data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/top_referrers.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch referrers data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/error_paths.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch error paths data: ${res.status}`);
-            return res.json();
-          }),
-          fetch('/data/filtered_logs.json').then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch logs data: ${res.status}`);
-            return res.json();
-          }),
-        ]);
-
-        setSummaryData(summary);
-        setStatusData(statusCodes);
-        setTimelineData(timeline);
-        setDailyData(daily);
-        setTrafficData(traffic);
-        setEndpointsData(endpoints);
-        setIpsData(ips);
-        setBotUserData(botUser);
-        setHttpMethodsData(methods);
-        setStatusCategoriesData(categories);
-        setFileTypesData(fileTypes);
-        setReferrersData(referrers);
-        setErrorPathsData(errorPaths);
-        setRawLogsData(logs);
-        setFilteredLogs(logs);
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        setLoadingError(error.message || 'Failed to load dashboard data');
-      } finally {
-        setLoading(false);
+  // Fetch data from API
+  const fetchFromAPI = async () => {
+    try {
+      setLoading(true);
+      setLoadingError(null);
+      
+      // Fetch all data at once
+      const response = await fetch('/api/data?type=all');
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
-    };
+      
+      const data = await response.json();
+      
+      // Set all the data
+      setSummaryData(data.summary);
+      setStatusData(data.statusData);
+      setTimelineData(data.timelineData);
+      setDailyData(data.dailyData);
+      setTrafficData(data.trafficData);
+      setEndpointsData(data.endpointsData);
+      setIpsData(data.ipsData);
+      setBotUserData(data.botUserData);
+      setStatusCategoriesData(data.statusCategories || []);
+      setFileTypesData(data.fileTypesData);
+      setRawLogsData(data.rawLogsData);
+      setFilteredLogs(data.rawLogsData);
+      
+      // Derive HTTP methods from raw logs if not provided directly
+      if (!data.httpMethodsData) {
+        const methodCounts = data.rawLogsData.reduce((acc, log) => {
+          const method = log.method || 'UNKNOWN';
+          acc[method] = (acc[method] || 0) + 1;
+          return acc;
+        }, {});
+        
+        const httpMethods = Object.entries(methodCounts).map(([method, count]) => ({
+          method,
+          count
+        })).sort((a, b) => b.count - a.count);
+        
+        setHttpMethodsData(httpMethods);
+      } else {
+        setHttpMethodsData(data.httpMethodsData);
+      }
+      
+      // Derive referrers from raw logs if not provided directly
+      if (!data.referrersData) {
+        const referrerCounts = data.rawLogsData.reduce((acc, log) => {
+          const referrer = log.referrer || '-';
+          acc[referrer] = (acc[referrer] || 0) + 1;
+          return acc;
+        }, {});
+        
+        const referrers = Object.entries(referrerCounts)
+          .map(([referrer, count]) => ({
+            referrer,
+            count
+          }))
+          .sort((a, b) => b.count - a.count);
+        
+        setReferrersData(referrers);
+      } else {
+        setReferrersData(data.referrersData);
+      }
+    } catch (error) {
+      console.error('Error fetching data from API:', error);
+      setLoadingError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
+  // Refresh data from API
+  const refreshData = async () => {
+    try {
+      await fetchFromAPI();
+      return true;
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      return false;
+    }
+  };
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchFromAPI();
   }, []);
 
-  // Apply filters to logs
-  useEffect(() => {
-    if (!rawLogsData || !activeFilters || Object.keys(activeFilters).length === 0) {
-      setFilteredLogs(rawLogsData);
-      return;
+  // Log table column definitions
+  const logTableColumns = [
+    { key: 'timestamp', label: 'Time', render: (value) => format(new Date(value), 'yyyy-MM-dd HH:mm:ss') },
+    { key: 'ip', label: 'IP Address' },
+    { key: 'method', label: 'Method' },
+    { key: 'path', label: 'Path' },
+    { 
+      key: 'status', 
+      label: 'Status', 
+      render: (value) => {
+        let color = '';
+        const status = parseInt(value);
+        
+        if (status >= 200 && status < 300) color = 'text-green-600 dark:text-green-400';
+        else if (status >= 300 && status < 400) color = 'text-blue-600 dark:text-blue-400';
+        else if (status >= 400 && status < 500) color = 'text-yellow-600 dark:text-yellow-400';
+        else if (status >= 500) color = 'text-red-600 dark:text-red-400';
+        
+        return <span className={color}>{value}</span>;
+      }
+    },
+    { key: 'bytes', label: 'Size (B)' },
+    { 
+      key: 'is_bot', 
+      label: 'Bot', 
+      render: (value) => {
+        return value ? 
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Yes</span> : 
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">No</span>;
+      }
     }
-
+  ];
+  
+  // Function to apply filters to raw logs
+  const handleApplyFilters = (filters) => {
+    // Merge with existing filters or replace
+    const newFilters = { ...activeFilters, ...filters };
+    setActiveFilters(newFilters);
+    
+    // Apply the filters to raw logs
     const filtered = rawLogsData.filter(log => {
-      for (const [key, value] of Object.entries(activeFilters)) {
+      for (const [key, value] of Object.entries(newFilters)) {
+        // Skip empty filter values
         if (!value) continue;
         
-        // Handle search query separately
-        if (key === 'searchQuery') {
-          const query = value.toLowerCase();
-          const searchables = [
-            log.path, 
-            log.ip, 
-            log.user_agent, 
-            log.method
-          ].filter(Boolean);
-          
-          if (!searchables.some(field => 
-            field && field.toLowerCase().includes(query)
-          )) {
-            return false;
-          }
+        // Special handling for path (partial match)
+        if (key === 'path' && log.path) {
+          if (!log.path.includes(value)) return false;
           continue;
         }
         
-        // Handle boolean filters
-        if (key === 'isBot') {
-          if (value === 'true' && !log.is_bot) return false;
-          if (value === 'false' && log.is_bot) return false;
-          continue;
-        }
-        
-        // Handle status code filter - convert to string for comparison
-        if (key === 'status' || key === 'statusCode') {
-          if (String(log.status) !== String(value)) {
-            return false;
-          }
-          continue;
-        }
-        
-        // Handle other filters
-        if (log[key] !== value) {
+        // Check if log entry has the filter property and it matches
+        if (log[key] === undefined || log[key] !== value) {
           return false;
         }
       }
@@ -211,267 +213,100 @@ export default function DashboardPage() {
     });
     
     setFilteredLogs(filtered);
-  }, [rawLogsData, activeFilters]);
-
-  // Format timestamps for timeline charts
-  const formatTimelineDataFn = (data) => {
-    return (data || []).map(point => {
-      // Extract hour from the timestamp (format: "YYYY-MM-DD HH:00")
-      const parts = point.hour.split(' ');
-      if (parts.length === 2) {
-        return {
-          ...point,
-          hour: parts[1], // Just show the hour:minute
-          fullTime: point.hour // Keep the full timestamp for tooltips
-        };
-      }
-      return point;
-    });
   };
   
-  // Memoized formatted timeline data
-  const formattedTimelineData = useMemo(() => formatTimelineDataFn(timelineData), [timelineData]);
-
-  const formatTrafficData = useMemo(() => {
-    return (trafficData || []).map(point => {
-      // Extract hour from the timestamp (format: "YYYY-MM-DD HH:00")
-      const parts = point.hour.split(' ');
-      if (parts.length === 2) {
-        return {
-          ...point,
-          hour: parts[1], // Just show the hour:minute
-          fullTime: point.hour // Keep the full timestamp for tooltips
-        };
-      }
-      return point;
-    });
-  }, [trafficData]);
-  
-  // Format daily data for better readability
-  const formatDailyData = useMemo(() => {
-    return (dailyData || []).map(point => {
-      // Format date for display (YYYY-MM-DD -> MM/DD)
-      const dateParts = point.date.split('-');
-      if (dateParts.length === 3) {
-        return {
-          ...point,
-          date: `${dateParts[1]}/${dateParts[2]}`, // MM/DD format
-          fullDate: point.date // Keep full date for tooltips
-        };
-      }
-      return point;
-    });
-  }, [dailyData]);
-
-  // Format status code data for better visualization
-  const formattedStatusData = useMemo(() => {
-    return (statusData || []).map(item => {
-      const code = parseInt(item.status);
-      let category = '';
-      let color = '';
-      
-      if (code >= 200 && code < 300) {
-        category = 'Success';
-        color = statusCodeColors['2xx'];
-      } else if (code >= 300 && code < 400) {
-        category = 'Redirect';
-        color = statusCodeColors['3xx'];
-      } else if (code >= 400 && code < 500) {
-        category = 'Client Error';
-        color = statusCodeColors['4xx'];
-      } else if (code >= 500 && code < 600) {
-        category = 'Server Error';
-        color = statusCodeColors['5xx'];
-      }
-      
-      return {
-        ...item,
-        label: `${item.status} - ${category}`,
-        color
-      };
-    });
-  }, [statusData]);
-
-  // These are the columns for the raw logs table
-  const logTableColumns = [
-    { key: 'timestamp', label: 'Time', render: (value) => value ? format(new Date(value), 'yyyy-MM-dd HH:mm:ss') : 'N/A' },
-    { key: 'ip', label: 'IP Address' },
-    { key: 'method', label: 'Method' },
-    { key: 'path', label: 'Path' },
-    { key: 'status', label: 'Status', render: (value) => {
-      const code = parseInt(value);
-      let color = 'text-gray-600 dark:text-gray-400';
-      
-      if (code >= 200 && code < 300) color = 'text-green-600 dark:text-green-400';
-      else if (code >= 300 && code < 400) color = 'text-blue-600 dark:text-blue-400';
-      else if (code >= 400 && code < 500) color = 'text-yellow-600 dark:text-yellow-400';
-      else if (code >= 500) color = 'text-red-600 dark:text-red-400';
-      
-      const handleStatusClick = () => {
-        handleApplyFilters({ status: value });
-      };
-      
-      return (
-        <button 
-          onClick={handleStatusClick}
-          className={`${color} hover:underline focus:outline-none`}
-        >
-          {value}
-        </button>
-      );
-    }},
-    { key: 'bytes', label: 'Size', render: (value) => `${Math.round(value / 1024)} KB` },
-    { key: 'is_bot', label: 'Bot', render: (value) => value ? 'Yes' : 'No' }
-  ];
-
-  // Computed filters based on available data
-  const availableFilters = useMemo(() => {
-    if (!rawLogsData || rawLogsData.length === 0) return [];
-
-    return [
-      {
-        key: 'searchQuery',
-        label: 'Search',
-        type: 'text',
-        placeholder: 'Search in requests...'
-      },
-      {
-        key: 'statusCode',
-        label: 'Status Code',
-        type: 'select',
-        options: [
-          { value: '200', label: '200 - OK' },
-          { value: '201', label: '201 - Created' },
-          { value: '301', label: '301 - Moved Permanently' },
-          { value: '302', label: '302 - Found' },
-          { value: '400', label: '400 - Bad Request' },
-          { value: '403', label: '403 - Forbidden' },
-          { value: '404', label: '404 - Not Found' },
-          { value: '500', label: '500 - Internal Server Error' }
-        ]
-      },
-      {
-        key: 'method',
-        label: 'HTTP Method',
-        type: 'select',
-        options: httpMethodsData.map(method => ({
-          value: method.method,
-          label: method.method
-        }))
-      },
-      {
-        key: 'isBot',
-        label: 'Bot Traffic',
-        type: 'select',
-        options: [
-          { value: 'true', label: 'Bot Traffic Only' },
-          { value: 'false', label: 'Human Traffic Only' }
-        ]
-      },
-      {
-        key: 'fileExtension',
-        label: 'File Type',
-        type: 'select',
-        options: fileTypesData.slice(0, 10).map(type => ({
-          value: type.type,
-          label: type.type
-        }))
-      }
-    ];
-  }, [rawLogsData, httpMethodsData, fileTypesData]);
-
-  // Handle filter application
-  const handleApplyFilters = (filters) => {
-    setActiveFilters(filters);
-  };
-
-  // Handle filter reset
+  // Function to reset all filters
   const handleResetFilters = () => {
     setActiveFilters({});
+    setFilteredLogs(rawLogsData);
   };
-
-  // Toggle between hourly and daily view with localStorage persistence
+  
+  // Available filters for the filter panel
+  const availableFilters = [
+    { id: 'status', label: 'Status Code', type: 'select', options: statusData.map(s => ({ value: s.status, label: s.status })) },
+    { id: 'method', label: 'HTTP Method', type: 'select', options: httpMethodsData.map(m => ({ value: m.method, label: m.method })) },
+    { id: 'path', label: 'Path', type: 'text' },
+    { id: 'ip', label: 'IP Address', type: 'text' },
+    { id: 'is_bot', label: 'Bot Traffic', type: 'select', options: [
+      { value: 'true', label: 'Yes' },
+      { value: 'false', label: 'No' }
+    ]}
+  ];
+  
+  // Format and memoize timeline data for hourly view
+  const formatTimelineDataFn = (data) => {
+    return data.map(point => ({
+      hour: point.hour,
+      count: point.count,
+      fullTime: point.fullTime
+    }));
+  };
+  
+  // Memoize the formatted timeline data
+  const formattedTimelineData = useMemo(() => {
+    if (!timelineData || timelineData.length === 0) return [];
+    return formatTimelineDataFn(timelineData);
+  }, [timelineData]);
+  
+  // Format traffic data for visualization
+  const formatTrafficData = useMemo(() => {
+    if (!trafficData || trafficData.length === 0) return [];
+    
+    return trafficData.map(point => ({
+      hour: point.hour,
+      megabytes: point.megabytes || 0,
+      fullTime: point.fullTime
+    }));
+  }, [trafficData]);
+  
+  // Format daily data for visualization
+  const formatDailyData = useMemo(() => {
+    if (!dailyData || dailyData.length === 0) return [];
+    
+    return dailyData.map(point => ({
+      date: point.date,
+      count: point.count,
+      fullDate: point.fullDate
+    }));
+  }, [dailyData]);
+  
+  // Toggle time range between hourly and daily
   const toggleTimeRange = () => {
     const newTimeRange = timeRange === 'hourly' ? 'daily' : 'hourly';
     setTimeRange(newTimeRange);
-    localStorage.setItem('timeRange', newTimeRange);
+    
+    // Save preference
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('timeRange', newTimeRange);
+    }
   };
-
-  // Use the theme context
-  const { darkMode, toggleDarkMode } = useTheme();
-
+  
+  // Access the theme
+  const { theme } = useTheme();
+  
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
-          <h2 className="text-xl font-medium text-gray-900 dark:text-white mt-4">Loading dashboard data...</h2>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Please wait while we fetch the log analysis data.</p>
+          <div className="animate-pulse mb-4">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold">Loading dashboard data...</h2>
+          {loadingError && (
+            <div className="mt-4 text-red-500">
+              Error: {loadingError}
+            </div>
+          )}
         </div>
       </div>
     );
   }
   
-  if (loadingError) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="text-red-500 dark:text-red-400 text-5xl mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-medium text-gray-900 dark:text-white mb-2">Failed to load dashboard data</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{loadingError}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition duration-200"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition duration-200">
-      <header className="bg-white dark:bg-gray-800 shadow sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-600 dark:text-indigo-400 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clipRule="evenodd" />
-              </svg>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">NGINX Log Analyzer</h1>
-            </div>
-            <div className="flex space-x-4">
-              <button 
-                onClick={toggleDarkMode}
-                className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition duration-200"
-                aria-label="Toggle dark mode"
-              >
-                {darkMode ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-                  </svg>
-                )}
-              </button>
-            </div>
-          </div>
-          {summaryData?.generated_at && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Last updated: {format(new Date(summaryData.generated_at), 'yyyy-MM-dd HH:mm:ss')}
-            </p>
-          )}
-        </div>
-      </header>
-      
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <main>
+      <div className="pb-20">
         <DashboardContent 
           timeRange={timeRange}
           toggleTimeRange={toggleTimeRange}
@@ -502,22 +337,7 @@ export default function DashboardPage() {
           chartColors={chartColors}
           logTableColumns={logTableColumns}
         />
-      </main>
-      
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="md:flex md:items-center md:justify-between">
-            <div className="md:order-1">
-              <p className="text-center text-base text-gray-500 dark:text-gray-400">
-                NGINX Log Analyzer Dashboard - ICM 2025 HACKATON
-              </p>
-              <p className="text-center text-sm text-gray-400 dark:text-gray-500 mt-1">
-                Analyzing {summaryData?.total_requests.toLocaleString() || 0} requests from NGINX logs
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </main>
   );
 }

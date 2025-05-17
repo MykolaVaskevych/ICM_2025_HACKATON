@@ -566,8 +566,17 @@ export default function D3Chart({
     }
   }
 
+  // Determine chart class based on data type for PDF capture
+  const getChartClass = () => {
+    if (xKey === 'hour' || xKey === 'date') return 'traffic-chart';
+    if (xKey === 'category' && yKey === 'count') return 'status-chart';
+    if (xKey === 'type' && yKey === 'count') return 'bot-chart';
+    if (xKey === 'method') return 'methods-chart';
+    return 'data-chart';
+  };
+  
   return (
-    <div className={`w-full h-full ${className}`} ref={containerRef}>
+    <div className={`w-full h-full ${className} ${getChartClass()}`} ref={containerRef}>
       {isLoading && (
         <div className="chart-skeleton h-full w-full rounded"></div>
       )}

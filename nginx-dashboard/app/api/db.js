@@ -1,11 +1,15 @@
-const { Pool } = require('pg');
+import pg from 'pg';
+const { Pool } = pg;
 
+// Use the same database configuration as the real_log_processor.js
 const pool = new Pool({
-  user: 'nginx_user',
   host: 'localhost',
-  database: 'nginx_logs',
-  password: 'secure_password',
   port: 5432,
+  database: 'nginx_logs',
+  user: 'stnikolas', // Using current OS user
+  // Optional: Increase connection timeouts for better reliability
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000
 });
 
 // Helper function to execute queries with proper error handling
@@ -286,7 +290,25 @@ async function getRawLogs(filters = {}, limit = 1000) {
   }));
 }
 
-module.exports = {
+// Export pool and functions for use in other files
+export {
+  pool,
+  query,
+  getSummary,
+  getStatusCodes,
+  getTimeline,
+  getTrafficData,
+  getTopIPs,
+  getTopEndpoints,
+  getErrorPaths,
+  getBotUserData,
+  getFileTypes,
+  getRawLogs
+};
+
+// Export as default for compatibility
+export default {
+  pool,
   query,
   getSummary,
   getStatusCodes,

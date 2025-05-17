@@ -8,6 +8,7 @@ A complete JavaScript solution for processing NGINX logs and visualizing the dat
 - PostgreSQL database for efficient storage and querying
 - Interactive dashboard built with Next.js and React
 - Line-by-line log file processing for handling large log files
+- Support for compressed logs (.gz files)
 - Incremental log processing (only processes new log entries)
 - Bot detection based on user agent patterns
 - Extensive log statistics and visualizations
@@ -17,74 +18,23 @@ A complete JavaScript solution for processing NGINX logs and visualizing the dat
 
 The system consists of three main components:
 
-1. **Log Processor** (`log_processor.js`): Processes NGINX log files line by line and stores the data in PostgreSQL.
+1. **Log Processor** (`real_log_processor.js`): Processes NGINX log files line by line and stores the data in PostgreSQL.
 2. **Dashboard API** (`nginx-dashboard/app/api`): Retrieves data from PostgreSQL and serves it to the dashboard.
 3. **Dashboard UI** (`nginx-dashboard/app/dashboard`): Visualizes the log data with interactive charts and tables.
 
 ## Prerequisites
 
 - Node.js v16 or higher
-- PostgreSQL v12 or higher
+- PostgreSQL v14 or higher
 - npm or yarn
 
 ## Installation
 
-### 1. Set up PostgreSQL Database
+### 1. Clone the repository
 
 ```bash
-# Connect to PostgreSQL
-psql -U postgres
-
-# Create database and user
-CREATE DATABASE nginx_logs;
-CREATE USER nginx_user WITH ENCRYPTED PASSWORD 'secure_password';
-GRANT ALL PRIVILEGES ON DATABASE nginx_logs TO nginx_user;
-
-# Connect to the new database
-\c nginx_logs
-
-# Create tables
-CREATE TABLE logs (
-  id SERIAL PRIMARY KEY,
-  ip VARCHAR(45) NOT NULL,
-  timestamp TIMESTAMP NOT NULL,
-  method VARCHAR(10) NOT NULL,
-  path TEXT NOT NULL,
-  protocol VARCHAR(10) NOT NULL,
-  status INTEGER NOT NULL,
-  bytes INTEGER NOT NULL,
-  referrer TEXT,
-  user_agent TEXT,
-  is_bot BOOLEAN DEFAULT FALSE,
-  processing_time FLOAT
-);
-
-CREATE TABLE status_stats (
-  status INTEGER PRIMARY KEY,
-  count INTEGER NOT NULL
-);
-
-CREATE TABLE hourly_stats (
-  id SERIAL PRIMARY KEY,
-  hour INTEGER NOT NULL,
-  day DATE NOT NULL,
-  count INTEGER NOT NULL,
-  bytes_total BIGINT NOT NULL,
-  UNIQUE(hour, day)
-);
-
-CREATE TABLE path_stats (
-  path TEXT PRIMARY KEY,
-  count INTEGER NOT NULL,
-  avg_time FLOAT
-);
-
-# Create indexes for better performance
-CREATE INDEX idx_logs_timestamp ON logs(timestamp);
-CREATE INDEX idx_logs_ip ON logs(ip);
-CREATE INDEX idx_logs_status ON logs(status);
-CREATE INDEX idx_logs_path ON logs(path);
-CREATE INDEX idx_logs_is_bot ON logs(is_bot);
+git clone <repository-url>
+cd nginx-log-dashboard
 ```
 
 ### 2. Install Dependencies
@@ -96,66 +46,101 @@ npm install
 # Install dashboard dependencies
 cd nginx-dashboard
 npm install
+cd ..
 ```
 
-### 3. Configure Log Processor
+### 3. Setup PostgreSQL Database
 
-Edit `log_processor.js` to set your PostgreSQL connection details and log file path:
+The easiest way to set up PostgreSQL is to run the provided setup script:
 
-```javascript
-const config = {
-  logFile: path.resolve(__dirname, 'access.log'),
-  positionFile: path.resolve(__dirname, '.access.log.position'),
-  updateInterval: '*/3 * * * *', // Every 3 minutes
-  batchSize: 1000,
-  postgres: {
-    user: 'nginx_user',
-    host: 'localhost',
-    database: 'nginx_logs',
-    password: 'secure_password',
-    port: 5432,
-  }
-};
+```bash
+# Make the script executable and run it
+npm run setup:db
+```
+
+This script will:
+- Check if PostgreSQL is running
+- Create the `nginx_logs` database if it doesn't exist
+- Create all the necessary tables and indexes
+- Set up the proper schema for log analysis
+
+Alternatively, you can manually set up PostgreSQL:
+
+```bash
+# Connect to PostgreSQL
+psql -U postgres
+
+# Create database
+CREATE DATABASE nginx_logs;
+
+# Connect to the new database
+\c nginx_logs
+
+# Create tables (see setup-postgres.sh for full schema)
 ```
 
 ## Usage
 
-### Process Logs
+### 1. Process Logs
 
-To process logs and store them in PostgreSQL:
-
-```bash
-npm run process
-```
-
-### Generate Dashboard Data
-
-To generate static JSON files for the dashboard (alternative to PostgreSQL):
+To initialize the database and process logs:
 
 ```bash
-npm run generate
+npm run process:logs
 ```
 
-### Monitor Log Files
+This will:
+- Create database tables if they don't exist
+- Process the NGINX log files (both standard and compressed)
+- Update statistics for dashboard visualization
+- Continue monitoring for changes every 3 minutes
 
-To continuously monitor log files for changes and process new entries:
+### 2. Run Dashboard
+
+In a separate terminal, run the dashboard:
 
 ```bash
-npm run monitor
+npm run dashboard
 ```
 
-### Run Dashboard
+The dashboard will be available at `http://localhost:3000`.
 
-To run the dashboard with database integration:
+### 3. All-in-One Command
+
+To set up the database, process logs, and run the dashboard in one command:
 
 ```bash
-cd nginx-dashboard
-npm run dev:db
+npm start
 ```
 
-## Dashboard
+## Log Processing Options
 
-The dashboard is available at `http://localhost:3000` and provides:
+The log processor (`real_log_processor.js`) supports multiple options:
+
+- Processing uncompressed log files
+- Processing compressed (.gz) log files
+- Incremental processing (only processes new log entries)
+- Batch processing for better performance
+- Automatic updating of statistics tables
+
+To configure which log files to process, edit the `config` object in `real_log_processor.js`:
+
+```javascript
+const config = {
+  // Primary log file (uncompressed)
+  logFile: path.resolve(__dirname, 'sample_access.log'),
+  // Secondary log files (compressed) - these will be processed in order if they exist
+  compressedLogFiles: [
+    path.resolve(__dirname, 'access.log.gz'),
+    path.resolve(__dirname, 'access_log.gz')
+  ],
+  // ...other configuration options
+};
+```
+
+## Dashboard Features
+
+The dashboard provides:
 
 - Summary statistics
 - Status code distribution
@@ -165,28 +150,52 @@ The dashboard is available at `http://localhost:3000` and provides:
 - Bot vs. user traffic
 - Error analysis
 - Raw log search and filtering
+- Database explorer for direct SQL queries
 
-## Database vs. File-Based Approach
+## Development
 
-The system supports two approaches:
+For development with automatic reloading:
 
-1. **Database Approach** (Recommended): Stores log data in PostgreSQL for efficient querying and real-time updates.
-   - Better performance with large log files
-   - Efficient filtering and querying
-   - Real-time updates
-   - Scalable to millions of log entries
+```bash
+# Run log processor with nodemon for automatic reloading
+npm run process:logs:dev
 
-2. **File-Based Approach**: Generates static JSON files for the dashboard.
-   - Simpler setup (no database required)
-   - Suitable for smaller log files
-   - Requires regenerating data files after log changes
+# Run dashboard with development server
+npm run dashboard
+```
 
-To toggle between approaches:
+## Troubleshooting
 
-- In `nginx-dashboard/app/api/data/route.js`: Set `USE_DATABASE` to `true` or `false`
-- In `nginx-dashboard/app/dashboard/page-db.js`: Set `USE_API` to `true` or `false`
+### Database Connection Issues
+
+If you encounter database connection issues:
+
+1. Make sure PostgreSQL is running:
+   ```bash
+   # macOS
+   brew services list
+   
+   # Linux
+   systemctl status postgresql
+   ```
+
+2. Check database credentials in both `real_log_processor.js` and `nginx-dashboard/app/api/db.js`.
+
+3. Run the PostgreSQL setup script again:
+   ```bash
+   npm run setup:db
+   ```
+
+### Log Processing Issues
+
+If log files are not being processed:
+
+1. Check the log file paths in `real_log_processor.js`.
+
+2. Ensure you have proper permissions to read the log files.
+
+3. For compressed log files, make sure the zlib module is working correctly.
 
 ## License
 
 MIT
-EOF < /dev/null

@@ -1,4 +1,14 @@
 {
+  "name": "nginx-logs-dashboard",
+  "version": "1.0.0",
+  "description": "NGINX Log Analysis Dashboard with PostgreSQL",
+  "scripts": {
+    "process:logs": "node real_log_processor.js",
+    "process:logs:dev": "nodemon real_log_processor.js",
+    "dashboard": "cd nginx-dashboard && npm run dev",
+    "setup:db": "chmod +x ./setup-postgres.sh && ./setup-postgres.sh",
+    "start": "npm run setup:db && npm run process:logs && npm run dashboard"
+  },
   "dependencies": {
     "file-saver": "^2.0.5",
     "jspdf": "^3.0.1",
@@ -6,6 +16,8 @@
     "xlsx": "^0.18.5",
     "pg": "^8.11.3",
     "node-cron": "^3.0.3",
-    "chokidar": "^3.6.0"
+    "chokidar": "^3.6.0",
+    "readline": "^1.3.0",
+    "html2canvas": "^1.4.1"
   }
 }

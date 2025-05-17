@@ -1,6 +1,6 @@
 # NGINX Dashboard
 
-A comprehensive analytics dashboard for NGINX log files, built with Next.js and PostgreSQL.
+A comprehensive analytics dashboard for NGINX log files, built with Next.js and PostgreSQL. This version uses a fully database-driven approach for better performance and scalability.
 
 ![NGINX Dashboard](https://example.com/dashboard-preview.png)
 
@@ -69,6 +69,15 @@ npm run generate:data
 - **Data Processing**: Custom log parser, streaming compression/decompression
 - **Visualization**: Interactive charts with D3.js
 - **Reporting**: PDF generation with jsPDF
+
+## Architecture
+
+This dashboard uses a fully database-driven approach:
+
+1. **Log Processing**: Raw NGINX logs are parsed and stored in PostgreSQL
+2. **API Layer**: Next.js API routes fetch data from the database
+3. **React Components**: Frontend components fetch data from the API
+4. **Visualization**: D3.js renders the data into interactive charts
 
 ## License
 
