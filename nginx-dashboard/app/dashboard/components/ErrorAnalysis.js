@@ -28,26 +28,29 @@ export default function ErrorAnalysis({
 
   // Calculate error timeline
   const errorTimelineData = useMemo(() => {
+    if (!rawLogsData || (!formattedTimelineData && timeRange === 'hourly') || (!formatDailyData && timeRange !== 'hourly')) {
+      return [];
+    }
+    
     if (timeRange === 'hourly') {
-      // Use the pre-formatted timeline data and filter by selected day if needed
-      let filteredData = formattedTimelineData;
-      
-      // Filter by selected day if one is selected
-      if (selectedDay) {
-        filteredData = formattedTimelineData.filter(point => 
-          point.fullTime && point.fullTime.startsWith(selectedDay)
-        );
-      }
-      
-      return filteredData.map(point => {
+      // Use the pre-formatted timeline data which is already filtered by selectedDay
+      return formattedTimelineData.map(point => {
+        // Find error logs for this hour
         const matchingLogs = rawLogsData.filter(log => {
           if (!log.timestamp) return false;
+          
+          // Extract date and hour from log timestamp
           const logDate = new Date(log.timestamp).toISOString().split('T')[0];
           const logHour = new Date(log.timestamp).getHours() + ':00';
-          return logHour === point.hour && 
-                 (!selectedDay || logDate === selectedDay) && 
-                 parseInt(log.status) >= 400;
+          
+          // Check if this log matches the current point's hour and date (if selected)
+          const matchesHour = logHour === point.hour;
+          const matchesDate = point.fullTime && point.fullTime.startsWith(logDate);
+          const isError = parseInt(log.status) >= 400;
+          
+          return matchesHour && matchesDate && isError;
         });
+        
         return {
           hour: point.hour,
           count: matchingLogs.length,
@@ -55,12 +58,14 @@ export default function ErrorAnalysis({
         };
       });
     } else {
+      // Daily view
       return formatDailyData.map(point => {
         const matchingLogs = rawLogsData.filter(log => {
           if (!log.timestamp) return false;
           const logDate = new Date(log.timestamp).toISOString().split('T')[0];
           return logDate === point.fullDate && parseInt(log.status) >= 400;
         });
+        
         return {
           date: point.date,
           count: matchingLogs.length,
@@ -68,7 +73,7 @@ export default function ErrorAnalysis({
         };
       });
     }
-  }, [timeRange, timelineData, dailyData, rawLogsData, formattedTimelineData, formatDailyData, selectedDay]);
+  }, [timeRange, rawLogsData, formattedTimelineData, formatDailyData]);
 
   // Enhanced columns for error paths with status code info
   const errorColumns = [

@@ -25,8 +25,6 @@ const isBrowser = typeof window !== 'undefined';
 export default function ImportExportPanel({ rawLogsData, dashboardData, onImport }) {
   const [importStatus, setImportStatus] = useState('');
   const [exportFormat, setExportFormat] = useState('json');
-  const [importSource, setImportSource] = useState('file'); // 'file' or 'db'
-  const [exportDestination, setExportDestination] = useState('file'); // 'file' or 'db'
   const [isProcessing, setIsProcessing] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const fileInputRef = useRef(null);
@@ -101,94 +99,7 @@ export default function ImportExportPanel({ rawLogsData, dashboardData, onImport
     }
   };
   
-  // Import from database - using actual database connection
-  const importFromDatabase = async () => {
-    try {
-      setImportStatus('Importing from database...');
-      setIsProcessing(true);
-      
-      // Track progress
-      let importProgress = 0;
-      const updateProgressInterval = setInterval(() => {
-        if (importProgress < 90) {
-          importProgress += 10;
-          setImportProgress(importProgress);
-        }
-      }, 300);
-      
-      try {
-        // Direct fetch from the API without mock data
-        const response = await fetch('/api/import/database');
-        
-        // Clear progress interval
-        clearInterval(updateProgressInterval);
-        setImportProgress(95);
-        
-        if (!response.ok) {
-          throw new Error(`Database import failed: ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        setImportProgress(100);
-        
-        if (result.success) {
-          if (result.data && onImport) {
-            // Trigger parent component refresh
-            onImport(result.data);
-          }
-          
-          setImportStatus(`Successfully imported ${result.count || 0} log entries from database.`);
-          safeToast.success('Database import complete!');
-        } else {
-          throw new Error(result.message || 'Unknown error during database import');
-        }
-      } catch (error) {
-        console.error('Database import error:', error);
-        setImportStatus(`Error importing from database: ${error.message}`);
-        safeToast.error('Database import failed');
-      } finally {
-        setIsProcessing(false);
-        setTimeout(() => setImportProgress(0), 3000);
-      }
-    } catch (error) {
-      console.error('Database import error:', error);
-      setImportStatus(`Error importing from database: ${error.message}`);
-      setIsProcessing(false);
-      safeToast.error('Database import failed');
-    }
-  };
-  
-  // Export data to database - using actual database API
-  const exportToDatabase = async () => {
-    try {
-      if (!rawLogsData || rawLogsData.length === 0) {
-        toast.error('No data to export to database');
-        return;
-      }
-      
-      setIsProcessing(true);
-      
-      // Direct API call to database export endpoint
-      const response = await fetch('/api/export/database', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(rawLogsData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Database export failed: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-      
-      setIsProcessing(false);
-      toast.success(`Exported ${result.count} entries to database`);
-    } catch (error) {
-      console.error('Database export error:', error);
-      setIsProcessing(false);
-      toast.error('Error exporting to database: ' + error.message);
-    }
-  };
+  // Export to database functionality removed
   
   // Export data to JSON
   const exportJSON = async () => {
@@ -237,7 +148,7 @@ export default function ImportExportPanel({ rawLogsData, dashboardData, onImport
       saveAs(blob, 'nginx_logs_export.gz');
       
       setIsProcessing(false);
-      toast.success('Export to GZ complete!');
+      toast.success('Export complete! File saved as nginx_logs_export.gz');
     } catch (error) {
       console.error('GZ export error:', error);
       setIsProcessing(false);
@@ -245,64 +156,67 @@ export default function ImportExportPanel({ rawLogsData, dashboardData, onImport
     }
   };
   
-  // Export data to CSV/Excel
+  // Export data to Excel
   const exportExcel = async () => {
     try {
       if (!isBrowser) return;
       
-      // Dynamically import xlsx
-      const XLSX = await import('xlsx');
+      // Dynamically import xlsx library
+      const XLSX = await import('xlsx').then(m => m.default);
+      const { saveAs } = await import('file-saver');
       
-      // Prepare data for Excel format
-      const excelData = rawLogsData.map(log => ({
-        IP: log.ip,
-        Timestamp: log.timestamp,
-        Method: log.method,
-        Path: log.path,
-        Status: log.status,
-        'Bytes Transferred': log.bytes,
-        'User Agent': log.user_agent,
-        'Is Bot': log.is_bot ? 'Yes' : 'No'
-      }));
+      // Create new workbook
+      const workbook = XLSX.utils.book_new();
       
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'NGINX Logs');
-      XLSX.writeFile(wb, 'nginx_logs_export.xlsx');
+      // Create worksheet from JSON data
+      const worksheet = XLSX.utils.json_to_sheet(
+        rawLogsData.map(log => ({
+          Timestamp: new Date(log.timestamp).toLocaleString(),
+          IP: log.ip,
+          Method: log.method,
+          Path: log.path,
+          Protocol: log.protocol,
+          Status: log.status,
+          Size: log.bytes,
+          Referrer: log.referrer,
+          'User Agent': log.user_agent,
+          Bot: log.is_bot ? 'Yes' : 'No'
+        }))
+      );
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'NGINX Logs');
+      
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      
+      // Save file
+      saveAs(blob, 'nginx_logs_export.xlsx');
+      
+      toast.success('Export to Excel complete!');
     } catch (error) {
       console.error('Excel export error:', error);
-      alert('Error exporting to Excel: ' + error.message);
+      toast.error('Error exporting to Excel: ' + error.message);
     }
   };
   
-  // PDF Report Generator setup
-  const [pdfGeneratorRef, setPdfGeneratorRef] = useState({ current: null });
-  
-  useEffect(() => {
-    // Initialize PDF Report Generator with all dashboard data
-    const allDashboardData = {
-      ...dashboardData,
-      rawLogsData: rawLogsData
-    };
-    
-    // We'll now store a reference to call methods later
-    setPdfGeneratorRef({ 
-      current: {
-        allDashboardData
-      } 
-    });
-  }, [dashboardData, rawLogsData]);
-  
-  // Export data to PDF with comprehensive report
+  // Export data to PDF report
   const exportPDF = async () => {
     try {
-      if (!isBrowser || !pdfGeneratorRef.current) return;
+      if (!isBrowser) return;
       
-      // Dynamically import the required libraries
-      const jsPDFModule = await import('jspdf');
-      const jsPDF = jsPDFModule.jsPDF;
-      await import('jspdf-autotable');
-      const html2canvas = await import('html2canvas').then(module => module.default);
+      setIsProcessing(true);
+      
+      // Set up document data
+      const documentData = {
+        ...dashboardData,
+        rawLogsData: rawLogsData
+      };
+      
+      // Use the PDFReportGenerator to create PDF
+      const { jsPDF } = await import('jspdf');
+      const html2canvas = await import('html2canvas').then(m => m.default);
       
       // Create new PDF document
       const doc = new jsPDF({
@@ -311,33 +225,22 @@ export default function ImportExportPanel({ rawLogsData, dashboardData, onImport
         format: 'a4'
       });
       
-      // Add title
-      doc.setFontSize(24);
-      doc.setTextColor(40, 40, 40);
-      doc.text('NGINX Logs Analysis Report', 105, 40, { align: 'center' });
+      // Add basic information (title, date, summary)
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text('NGINX Logs Analysis', 105, 20, { align: 'center' });
       
-      // Add timestamp
+      doc.setFont('helvetica', 'normal');
       doc.setFontSize(12);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 50, { align: 'center' });
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 30, { align: 'center' });
       
-      // Add summary information
-      const summary = dashboardData?.summaryData || {};
-      doc.setFontSize(14);
-      doc.text('Summary Statistics', 105, 70, { align: 'center' });
-      
-      // Create summary table
-      doc.autoTable({
-        startY: 80,
-        head: [['Metric', 'Value']],
-        body: [
-          ['Total Requests', summary.totalRequests?.toLocaleString() || '0'],
-          ['Unique Visitors', summary.uniqueIPs?.toLocaleString() || '0'],
-          ['Error Rate', `${summary.errorRate?.toFixed(2) || '0'}%`],
-          ['Bot Traffic', `${summary.botPercentage?.toFixed(2) || '0'}%`]
-        ],
-        theme: 'grid',
-        headStyles: { fillColor: [79, 70, 229] }
-      });
+      // Add summary statistics
+      const summary = {
+        totalRequests: rawLogsData.length,
+        successfulRequests: rawLogsData.filter(log => log.status >= 200 && log.status < 400).length,
+        errorRequests: rawLogsData.filter(log => log.status >= 400).length,
+        botRequests: rawLogsData.filter(log => log.is_bot).length
+      };
       
       // Add note
       doc.setFontSize(8);
@@ -349,6 +252,8 @@ export default function ImportExportPanel({ rawLogsData, dashboardData, onImport
     } catch (error) {
       console.error('PDF export error:', error);
       toast.error('Error exporting to PDF: ' + error.message);
+    } finally {
+      setIsProcessing(false);
     }
   };
   
@@ -356,11 +261,6 @@ export default function ImportExportPanel({ rawLogsData, dashboardData, onImport
   const handleExport = () => {
     if (!rawLogsData || rawLogsData.length === 0) {
       toast.error('No data to export.');
-      return;
-    }
-    
-    if (exportDestination === 'db') {
-      exportToDatabase();
       return;
     }
     
@@ -409,70 +309,46 @@ export default function ImportExportPanel({ rawLogsData, dashboardData, onImport
       <div className="mb-6">
         <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Import Logs</h4>
         
-        {/* Import Source Selection */}
+        {/* File import only */}
         <div className="mb-3">
           <div className="flex rounded-md shadow-sm">
-            <button
-              onClick={() => setImportSource('file')}
-              className={`px-4 py-2 text-sm font-medium rounded-l-md ${importSource === 'file' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'}`}
-            >
+            <div className="px-4 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white">
               From File
-            </button>
-            <button
-              onClick={() => setImportSource('db')}
-              className={`px-4 py-2 text-sm font-medium rounded-r-md ${importSource === 'db' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-y border-r border-gray-300 dark:border-gray-600'}`}
-            >
-              From Database
-            </button>
+            </div>
           </div>
         </div>
         
-        {importSource === 'file' ? (
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="flex-grow">
-              <label className="block text-sm font-medium cursor-pointer px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-center">
-                <span>Choose File</span>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".json,.txt,.log,.gz,.sql"
-                  onChange={handleFileUpload}
-                  className="sr-only"
-                  disabled={isProcessing}
-                />
-              </label>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex-grow">
+            <label className="block text-sm font-medium cursor-pointer px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-center">
+              <span>Choose File</span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,.txt,.log,.gz,.sql"
+                onChange={handleFileUpload}
+                className="sr-only"
+              />
+            </label>
+          </div>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isProcessing}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-sm transition-colors disabled:bg-indigo-400 disabled:cursor-not-allowed"
+          >
+            Import
+          </button>
+          {importStatus && (
+            <div className="text-sm">
+              <span className={importStatus.includes('Error') ? 'text-red-500' : 'text-green-500'}>
+                {importStatus}
+              </span>
             </div>
-            {importStatus && !isProcessing && (
-              <div className="text-sm mt-2 sm:mt-0 sm:ml-2">
-                <span className={importStatus.includes('Error') ? 'text-red-500' : 'text-green-500'}>
-                  {importStatus}
-                </span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              onClick={importFromDatabase}
-              disabled={isProcessing}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-sm transition-colors disabled:bg-indigo-400 disabled:cursor-not-allowed"
-            >
-              Import from Database
-            </button>
-            {importStatus && !isProcessing && (
-              <div className="text-sm mt-2 sm:mt-0 sm:ml-2">
-                <span className={importStatus.includes('Error') ? 'text-red-500' : 'text-green-500'}>
-                  {importStatus}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
         
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          {importSource === 'file' ? 
-            'Supported formats: JSON, SQL dumps, text logs (.txt, .log), compressed logs (.gz)' :
-            'Import directly from database server (requires connection configuration)'}
+          Supported formats: JSON, SQL dumps, text logs (.txt, .log), compressed logs (.gz)
         </p>
       </div>
       
@@ -480,73 +356,50 @@ export default function ImportExportPanel({ rawLogsData, dashboardData, onImport
       <div>
         <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Export Logs</h4>
         
-        {/* Export Destination Selection */}
+        {/* Export to File Only */}
         <div className="mb-3">
           <div className="flex rounded-md shadow-sm">
-            <button
-              onClick={() => setExportDestination('file')}
-              className={`px-4 py-2 text-sm font-medium rounded-l-md ${exportDestination === 'file' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'}`}
-            >
+            <div className="px-4 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white">
               To File
-            </button>
-            <button
-              onClick={() => setExportDestination('db')}
-              className={`px-4 py-2 text-sm font-medium rounded-r-md ${exportDestination === 'db' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-y border-r border-gray-300 dark:border-gray-600'}`}
-            >
-              To Database
-            </button>
+            </div>
           </div>
         </div>
         
-        {exportDestination === 'file' ? (
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="flex-grow">
-              <select
-                value={exportFormat}
-                onChange={(e) => setExportFormat(e.target.value)}
-                className="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-700 dark:text-gray-200"
-                disabled={isProcessing}
-              >
-                <option value="json">JSON Format</option>
-                <option value="excel">Excel Format</option>
-                <option value="pdf">PDF Report</option>
-                <option value="gz">Compressed (.gz)</option>
-              </select>
-            </div>
-            <button
-              onClick={handleExport}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex-grow">
+            <select
+              value={exportFormat}
+              onChange={(e) => setExportFormat(e.target.value)}
+              className="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-700 dark:text-gray-200"
               disabled={isProcessing}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-sm transition-colors disabled:bg-indigo-400 disabled:cursor-not-allowed flex items-center"
             >
-              {isProcessing ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Exporting...
-                </>
-              ) : (
-                'Export'
-              )}
-            </button>
+              <option value="json">JSON Format</option>
+              <option value="excel">Excel Format</option>
+              <option value="pdf">PDF Report</option>
+              <option value="gz">Compressed (.gz)</option>
+            </select>
           </div>
-        ) : (
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              onClick={handleExport}
-              disabled={isProcessing}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-sm transition-colors disabled:bg-indigo-400 disabled:cursor-not-allowed"
-            >
-              Export to Database
-            </button>
-          </div>
-        )}
+          <button
+            onClick={handleExport}
+            disabled={isProcessing}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-sm transition-colors disabled:bg-indigo-400 disabled:cursor-not-allowed flex items-center"
+          >
+            {isProcessing ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Exporting...
+              </>
+            ) : (
+              'Export'
+            )}
+          </button>
+        </div>
         
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          {exportDestination === 'file' ? 
-            `Export all ${rawLogsData?.length || 0} log entries in selected format.` : 
-            'Export data directly to PostgreSQL database with batch processing.'}
+          Export all {rawLogsData?.length || 0} log entries in selected format.
         </p>
       </div>
     </div>

@@ -1,0 +1,12 @@
+[
+  {
+    "type": "Bot",
+    "count": 5133,
+    "percentage": 51.3
+  },
+  {
+    "type": "User",
+    "count": 4867,
+    "percentage": 48.7
+  }
+]

@@ -19,11 +19,35 @@ export default function StatsSummary({ stats }) {
     );
   }
 
+  // Process the stats data
+  const totalRequests = Array.isArray(stats) ? 
+    stats.find(s => s.metric === 'TotalRequests')?.value || 0 : 
+    stats.total_requests || stats.totalRequests || 0;
+    
+  const totalBytes = Array.isArray(stats) ? 
+    stats.find(s => s.metric === 'TotalBytes')?.value || 0 : 
+    stats.total_bytes || stats.totalBytes || 0;
+    
+  const errorCount = Array.isArray(stats) ? 
+    stats.find(s => s.metric === 'ErrorCount')?.value || 0 : 
+    stats.error_count || stats.errorCount || 0;
+    
+  const botRequests = Array.isArray(stats) ? 
+    stats.find(s => s.metric === 'BotRequests')?.value || 0 : 
+    stats.bot_requests || stats.botRequests || 0;
+    
+  // Calculate derived metrics
+  const totalTransferredMB = Math.round(totalBytes / (1024 * 1024)) || 0;
+  const successPercentage = totalRequests > 0 ? 
+    Math.round(((totalRequests - errorCount) / totalRequests) * 100) : 100;
+  const botPercentage = totalRequests > 0 ? 
+    Math.round((botRequests / totalRequests) * 100) : 0;
+  
   const statCards = [
     {
       id: 'total-requests',
       title: 'Total Requests',
-      value: formatNumber(stats.total_requests),
+      value: formatNumber(totalRequests),
       colorClass: 'text-blue-600',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
@@ -34,7 +58,7 @@ export default function StatsSummary({ stats }) {
     {
       id: 'data-transferred',
       title: 'Data Transferred',
-      value: `${stats.total_transferred_mb} MB`,
+      value: `${totalTransferredMB} MB`,
       colorClass: 'text-green-600',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" viewBox="0 0 20 20" fill="currentColor">
@@ -45,9 +69,9 @@ export default function StatsSummary({ stats }) {
     {
       id: 'success-rate',
       title: 'Success Rate',
-      value: `${stats.success_percentage}%`,
-      colorClass: stats.success_percentage > 95 ? 'text-green-600' : 
-                 stats.success_percentage > 90 ? 'text-yellow-600' : 'text-red-600',
+      value: `${successPercentage}%`,
+      colorClass: successPercentage > 95 ? 'text-green-600' : 
+                successPercentage > 90 ? 'text-yellow-600' : 'text-red-600',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-teal-500" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -57,9 +81,9 @@ export default function StatsSummary({ stats }) {
     {
       id: 'bot-traffic',
       title: 'Bot Traffic',
-      value: `${stats.bot_percentage}%`,
-      colorClass: stats.bot_percentage < 20 ? 'text-green-600' : 
-                 stats.bot_percentage < 40 ? 'text-yellow-600' : 'text-red-600',
+      value: `${botPercentage}%`,
+      colorClass: botPercentage < 20 ? 'text-green-600' : 
+                botPercentage < 40 ? 'text-yellow-600' : 'text-red-600',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-500" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />

@@ -20,6 +20,20 @@ export async function GET(request) {
     const client = await pool.connect();
     
     try {
+      // Get count of total logs
+      const countResult = await client.query('SELECT COUNT(*) FROM logs');
+      const totalCount = parseInt(countResult.rows[0].count);
+      
+      if (totalCount === 0) {
+        return NextResponse.json({
+          success: true,
+          message: 'No logs found in the database',
+          count: 0,
+          totalCount: 0,
+          data: []
+        });
+      }
+      
       // Get the most recent logs
       const result = await client.query(`
         SELECT 
@@ -54,10 +68,7 @@ export async function GET(request) {
         is_bot: log.is_bot
       }));
       
-      // Get count of total logs
-      const countResult = await client.query('SELECT COUNT(*) FROM logs');
-      const totalCount = parseInt(countResult.rows[0].count);
-      
+      // After successful retrieval, update the dashboard state
       return NextResponse.json({
         success: true,
         message: `Retrieved ${formattedLogs.length} logs from database (out of ${totalCount} total)`,

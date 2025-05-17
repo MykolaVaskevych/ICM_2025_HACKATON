@@ -37,6 +37,24 @@ export default function DashboardPage() {
   // Time period display state
   const [timeRange, setTimeRange] = useState('hourly'); // 'hourly', 'daily'
   
+  // Sample data for metrics comparison radar chart
+  const [metricsComparisonData, setMetricsComparisonData] = useState([{
+    current: {
+      requestCount: 4250,
+      avgResponseTime: 180,
+      errorRate: 2.3,
+      trafficVolume: 256,
+      uniqueVisitors: 1560
+    },
+    previous: {
+      requestCount: 3890,
+      avgResponseTime: 210,
+      errorRate: 3.1,
+      trafficVolume: 230,
+      uniqueVisitors: 1420
+    }
+  }]);
+  
   // Only initialize time range from localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -78,19 +96,26 @@ export default function DashboardPage() {
       
       const data = await response.json();
       
-      // Set all the data
-      setSummaryData(data.summary);
-      setStatusData(data.statusData);
-      setTimelineData(data.timelineData);
-      setDailyData(data.dailyData);
-      setTrafficData(data.trafficData);
-      setEndpointsData(data.endpointsData);
-      setIpsData(data.ipsData);
-      setBotUserData(data.botUserData);
+      // Set all the data with default values if missing
+      setSummaryData(data.summary || {
+        total_requests: 0,
+        total_bytes: 0,
+        error_count: 0,
+        unique_visitors: 0,
+        avg_response_time: 0,
+        success_rate: 100
+      });
+      setStatusData(data.statusData || []);
+      setTimelineData(data.timelineData || []);
+      setDailyData(data.dailyData || []);
+      setTrafficData(data.trafficData || []);
+      setEndpointsData(data.endpointsData || []);
+      setIpsData(data.ipsData || []);
+      setBotUserData(data.botUserData || [{type: 'Bot', count: 0}, {type: 'User', count: 0}]);
       setStatusCategoriesData(data.statusCategories || []);
-      setFileTypesData(data.fileTypesData);
-      setRawLogsData(data.rawLogsData);
-      setFilteredLogs(data.rawLogsData);
+      setFileTypesData(data.fileTypesData || []);
+      setRawLogsData(data.rawLogsData || []);
+      setFilteredLogs(data.rawLogsData || []);
       
       // Derive HTTP methods from raw logs if not provided directly
       if (!data.httpMethodsData) {
@@ -235,39 +260,58 @@ export default function DashboardPage() {
   
   // Format and memoize timeline data for hourly view
   const formatTimelineDataFn = (data) => {
+    if (!data || data.length === 0) return [];
+    
     return data.map(point => ({
-      hour: point.hour,
-      count: point.count,
-      fullTime: point.fullTime
+      hour: point.hour || '',
+      count: parseInt(point.count) || 0,
+      fullTime: point.fullTime || ''
     }));
   };
   
   // Memoize the formatted timeline data
   const formattedTimelineData = useMemo(() => {
     if (!timelineData || timelineData.length === 0) return [];
-    return formatTimelineDataFn(timelineData);
+    
+    // Ensure we have all required fields
+    const formatted = formatTimelineDataFn(timelineData);
+    
+    // Debug log
+    console.log(`Formatted ${formatted.length} timeline data points`);
+    
+    return formatted;
   }, [timelineData]);
   
   // Format traffic data for visualization
   const formatTrafficData = useMemo(() => {
     if (!trafficData || trafficData.length === 0) return [];
     
-    return trafficData.map(point => ({
-      hour: point.hour,
-      megabytes: point.megabytes || 0,
-      fullTime: point.fullTime
+    const formatted = trafficData.map(point => ({
+      hour: point.hour || '',
+      megabytes: parseFloat(point.megabytes) || 0,
+      fullTime: point.fullTime || ''
     }));
+    
+    // Debug log
+    console.log(`Formatted ${formatted.length} traffic data points`);
+    
+    return formatted;
   }, [trafficData]);
   
   // Format daily data for visualization
   const formatDailyData = useMemo(() => {
     if (!dailyData || dailyData.length === 0) return [];
     
-    return dailyData.map(point => ({
-      date: point.date,
-      count: point.count,
-      fullDate: point.fullDate
+    const formatted = dailyData.map(point => ({
+      date: point.date || '',
+      count: parseInt(point.count) || 0,
+      fullDate: point.fullDate || ''
     }));
+    
+    // Debug log
+    console.log(`Formatted ${formatted.length} daily data points`);
+    
+    return formatted;
   }, [dailyData]);
   
   // Toggle time range between hourly and daily
@@ -336,6 +380,7 @@ export default function DashboardPage() {
           statusCodeColors={statusCodeColors}
           chartColors={chartColors}
           logTableColumns={logTableColumns}
+          metricsComparisonData={metricsComparisonData}
         />
       </div>
     </main>

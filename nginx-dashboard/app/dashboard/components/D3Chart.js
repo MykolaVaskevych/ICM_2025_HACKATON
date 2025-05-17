@@ -289,9 +289,28 @@ export default function D3Chart({
   }
 
   function createLineChart(svg, data, width, height, xKey, yKey, colors, showTooltip) {
+    // Ensure we have data to work with
+    if (!data || data.length === 0) {
+      console.warn('No data provided for line chart');
+      return;
+    }
+    
+    // Ensure the data has the required keys
+    if (data[0][xKey] === undefined || data[0][yKey] === undefined) {
+      console.warn(`Data is missing required keys: ${xKey} or ${yKey}`);
+      return;
+    }
+    
     // Sort data by xKey if it's a date string
     if (typeof data[0][xKey] === 'string' && data[0][xKey].includes('-')) {
       data.sort((a, b) => new Date(a[xKey]) - new Date(b[xKey]));
+    } else if (xKey === 'hour') {
+      // Sort hourly data properly by extracting the hour
+      data.sort((a, b) => {
+        const hourA = parseInt(a[xKey].split(':')[0]);
+        const hourB = parseInt(b[xKey].split(':')[0]);
+        return hourA - hourB;
+      });
     }
 
     // X scale
@@ -299,9 +318,10 @@ export default function D3Chart({
       .domain(data.map(d => d[xKey]))
       .range([0, width]);
 
-    // Y scale
+    // Y scale - handle edge case where all values are 0
+    const maxY = d3.max(data, d => d[yKey]) || 1; // Use 1 if all values are 0
     const y = d3.scaleLinear()
-      .domain([0, d3.max(data, d => d[yKey]) * 1.1]) // Add 10% padding
+      .domain([0, maxY * 1.1]) // Add 10% padding
       .nice()
       .range([height, 0]);
 
