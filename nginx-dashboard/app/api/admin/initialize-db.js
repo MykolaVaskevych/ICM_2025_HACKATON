@@ -54,11 +54,10 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS path_stats (
         id SERIAL PRIMARY KEY,
-        path TEXT NOT NULL,
-        count INTEGER NOT NULL,
-        error_count INTEGER NOT NULL,
-        last_accessed TIMESTAMP NOT NULL,
-        UNIQUE(path)
+        path TEXT,
+        count INTEGER,
+        avg_time DOUBLE PRECISION,
+        last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       )
     `);
     
@@ -67,9 +66,9 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS status_stats (
         id SERIAL PRIMARY KEY,
-        status INTEGER NOT NULL,
-        count INTEGER NOT NULL,
-        UNIQUE(status)
+        status INTEGER,
+        count INTEGER,
+        last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       )
     `);
     
@@ -112,7 +111,6 @@ export async function initializeDatabase() {
           (200, 1),
           (404, 0),
           (500, 0)
-        ON CONFLICT (status) DO NOTHING
       `);
       
       // Insert sample hourly stats
@@ -128,14 +126,12 @@ export async function initializeDatabase() {
       
       // Insert sample path stats
       await client.query(`
-        INSERT INTO path_stats (path, count, error_count, last_accessed)
+        INSERT INTO path_stats (path, count, avg_time)
         VALUES (
           '/index.html',
           1,
-          0,
-          NOW()
+          0.0
         )
-        ON CONFLICT (path) DO NOTHING
       `);
     }
     

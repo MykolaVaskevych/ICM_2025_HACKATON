@@ -268,12 +268,11 @@ async function updateStatistics(client) {
   // Update path statistics
   await client.query(`
     TRUNCATE TABLE path_stats;
-    INSERT INTO path_stats(path, count, error_count, last_accessed)
+    INSERT INTO path_stats(path, count, avg_time)
     SELECT 
       path,
       COUNT(*) AS count,
-      SUM(CASE WHEN status >= 400 THEN 1 ELSE 0 END) AS error_count,
-      MAX(timestamp) AS last_accessed
+      0.0 AS avg_time
     FROM logs
     GROUP BY path
     ORDER BY count DESC
