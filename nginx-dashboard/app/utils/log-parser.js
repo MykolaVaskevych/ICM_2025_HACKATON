@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Parse NGINX log line (combined format)
  * 

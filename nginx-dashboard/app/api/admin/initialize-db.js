@@ -41,13 +41,11 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS hourly_stats (
         id SERIAL PRIMARY KEY,
-        hour TIMESTAMP NOT NULL,
-        total_requests INTEGER NOT NULL,
-        unique_visitors INTEGER NOT NULL,
-        bot_requests INTEGER NOT NULL,
-        error_count INTEGER NOT NULL,
-        total_bytes BIGINT NOT NULL,
-        UNIQUE(hour)
+        hour INTEGER,
+        day DATE,
+        count INTEGER,
+        bytes_total BIGINT,
+        last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       )
     `);
     
@@ -119,16 +117,13 @@ export async function initializeDatabase() {
       
       // Insert sample hourly stats
       await client.query(`
-        INSERT INTO hourly_stats (hour, total_requests, unique_visitors, bot_requests, error_count, total_bytes)
+        INSERT INTO hourly_stats (hour, day, count, bytes_total)
         VALUES (
-          DATE_TRUNC('hour', NOW()),
+          EXTRACT(HOUR FROM NOW())::integer,
+          DATE_TRUNC('day', NOW())::date,
           1,
-          1,
-          0,
-          0,
           1024
         )
-        ON CONFLICT (hour) DO NOTHING
       `);
       
       // Insert sample path stats

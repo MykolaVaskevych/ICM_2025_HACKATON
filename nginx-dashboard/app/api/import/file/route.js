@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { pool } from '../../db';
 import { initializeDatabase } from '../../admin/initialize-db';
-import { parseNginxLog } from '../../../utils/log-parser';
+// Import log parser utility
+import { parseNginxLog, parseCommonLogFormat, parseLogLine } from '../../../utils/log-parser';
 import { writeFile } from 'fs/promises';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
@@ -253,17 +254,15 @@ async function updateStatistics(client) {
   // Update hourly statistics
   await client.query(`
     TRUNCATE TABLE hourly_stats;
-    INSERT INTO hourly_stats(hour, total_requests, unique_visitors, bot_requests, error_count, total_bytes)
+    INSERT INTO hourly_stats(hour, day, count, bytes_total)
     SELECT 
-      DATE_TRUNC('hour', timestamp) AS hour,
-      COUNT(*) AS total_requests,
-      COUNT(DISTINCT ip) AS unique_visitors,
-      SUM(CASE WHEN is_bot THEN 1 ELSE 0 END) AS bot_requests,
-      SUM(CASE WHEN status >= 400 THEN 1 ELSE 0 END) AS error_count,
-      SUM(bytes) AS total_bytes
+      EXTRACT(HOUR FROM timestamp)::integer AS hour,
+      DATE_TRUNC('day', timestamp)::date AS day,
+      COUNT(*) AS count,
+      SUM(bytes) AS bytes_total
     FROM logs
-    GROUP BY hour
-    ORDER BY hour;
+    GROUP BY hour, day
+    ORDER BY day, hour;
   `);
   
   // Update path statistics
