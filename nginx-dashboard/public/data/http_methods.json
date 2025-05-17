@@ -10,5 +10,9 @@
   {
     "method": "HEAD",
     "count": 34
+  },
+  {
+    "method": "",
+    "count": 1
   }
 ]

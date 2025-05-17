@@ -38,5 +38,165 @@
   {
     "endpoint": "/wp-login.php?redirect_to=https%3A%2F%2Fwebsite.local.lan%2Fwp-admin%2F&reauth=1",
     "count": 48
+  },
+  {
+    "endpoint": "/post-sitemap.xml",
+    "count": 47
+  },
+  {
+    "endpoint": "/page-sitemap.xml",
+    "count": 47
+  },
+  {
+    "endpoint": "/feed/",
+    "count": 44
+  },
+  {
+    "endpoint": "/wp-content/plugins/to-top/public/css/to-top-public.css?ver=2.5.4",
+    "count": 28
+  },
+  {
+    "endpoint": "/wp-content/themes/simple-grid/style.css",
+    "count": 28
+  },
+  {
+    "endpoint": "/wp-includes/css/dist/block-library/style.min.css?ver=ba9feeafe26325fb6040798b29d62616",
+    "count": 25
+  },
+  {
+    "endpoint": "/wp-includes/css/dashicons.min.css?ver=ba9feeafe26325fb6040798b29d62616",
+    "count": 25
+  },
+  {
+    "endpoint": "/wp-content/plugins/nextgen-gallery/static/FontAwesome/css/v4-shims.min.css?ver=ba9feeafe26325fb6040798b29d62616",
+    "count": 24
+  },
+  {
+    "endpoint": "/wp-content/plugins/nextgen-gallery/static/FontAwesome/css/all.min.css?ver=ba9feeafe26325fb6040798b29d62616",
+    "count": 24
+  },
+  {
+    "endpoint": "/contacts/",
+    "count": 23
+  },
+  {
+    "endpoint": "/Capercaillie/",
+    "count": 22
+  },
+  {
+    "endpoint": "/wp-includes/js/jquery/jquery.min.js?ver=3.7.1",
+    "count": 21
+  },
+  {
+    "endpoint": "/wp-content/plugins/nextgen-gallery/static/FontAwesome/js/all.min.js?ver=5.3.1",
+    "count": 21
+  },
+  {
+    "endpoint": "/wp-admin/admin-ajax.php?action=wordfence_testAjax",
+    "count": 21
+  },
+  {
+    "endpoint": "/wp-content/themes/simple-grid/assets/js/navigation.js",
+    "count": 20
+  },
+  {
+    "endpoint": "/wp-content/plugins/to-top/public/js/to-top-public.js?ver=2.5.4",
+    "count": 20
+  },
+  {
+    "endpoint": "/wp-includes/js/jquery/jquery-migrate.min.js?ver=3.4.1",
+    "count": 20
+  },
+  {
+    "endpoint": "/wp-content/themes/simple-grid/assets/js/html5shiv.js",
+    "count": 19
+  },
+  {
+    "endpoint": "/wp-content/themes/simple-grid/assets/js/custom.js",
+    "count": 19
+  },
+  {
+    "endpoint": "/wp-content/plugins/nextgen-gallery/static/FontAwesome/js/v4-shims.min.js?ver=5.3.1",
+    "count": 19
+  },
+  {
+    "endpoint": "/wp-content/themes/simple-grid/assets/js/skip-link-focus-fix.js",
+    "count": 19
+  },
+  {
+    "endpoint": "/wp-includes/js/imagesloaded.min.js?ver=5.0.0",
+    "count": 18
+  },
+  {
+    "endpoint": "/wp-content/themes/simple-grid/assets/js/jquery.fitvids.min.js",
+    "count": 17
+  },
+  {
+    "endpoint": "/projects/",
+    "count": 17
+  },
+  {
+    "endpoint": "/favicon.ico",
+    "count": 15
+  },
+  {
+    "endpoint": "/projects/JEvaluator/",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-content/plugins/nextgen-gallery/static/Lightbox/simplelightbox/simple-lightbox.js",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-content/plugins/nextgen-gallery/static/Lightbox/lightbox_context.js",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-content/themes/simple-grid/assets/js/respond.min.js",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-content/themes/simple-grid/assets/js/custom.js",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-content/themes/simple-grid/assets/js/html5shiv.js",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-content/plugins/to-top/public/js/to-top-public.js",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-content/themes/simple-grid/assets/js/navigation.js",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-content/themes/simple-grid/assets/js/jquery.fitvids.min.js",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-content/plugins/nextgen-gallery/static/FontAwesome/js/all.min.js",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-includes/js/imagesloaded.min.js",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-includes/js/jquery/jquery-migrate.min.js",
+    "count": 14
+  },
+  {
+    "endpoint": "/wp-emoji-release.min.js",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-content/plugins/nextgen-gallery/static/FontAwesome/js/v4-shims.min.js",
+    "count": 14
+  },
+  {
+    "endpoint": "//website.local.lan/wp-content/plugins/nextgen-gallery/static/Albums/init.js",
+    "count": 14
   }
 ]

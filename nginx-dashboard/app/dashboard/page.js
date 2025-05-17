@@ -1,33 +1,168 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { format } from 'date-fns';
+import DashboardContent from './DashboardContent';
 
 export default function DashboardPage() {
+  // State for all data
   const [summaryData, setSummaryData] = useState(null);
   const [statusData, setStatusData] = useState([]);
   const [timelineData, setTimelineData] = useState([]);
+  const [dailyData, setDailyData] = useState([]);
+  const [trafficData, setTrafficData] = useState([]);
   const [endpointsData, setEndpointsData] = useState([]);
   const [ipsData, setIpsData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [botUserData, setBotUserData] = useState([]);
+  const [httpMethodsData, setHttpMethodsData] = useState([]);
+  const [statusCategoriesData, setStatusCategoriesData] = useState([]);
+  const [fileTypesData, setFileTypesData] = useState([]);
+  const [referrersData, setReferrersData] = useState([]);
+  const [errorPathsData, setErrorPathsData] = useState([]);
+  const [rawLogsData, setRawLogsData] = useState([]);
+  
+  // Filter state
+  const [activeFilters, setActiveFilters] = useState({});
+  const [filteredLogs, setFilteredLogs] = useState([]);
 
+  // Loading state
+  const [loading, setLoading] = useState(true);
+  
+  // Add state for data loading errors
+  const [loadingError, setLoadingError] = useState(null);
+  
+  // Time period display state
+  const [timeRange, setTimeRange] = useState('hourly'); // 'hourly', 'daily'
+  
+  // Theme state with localStorage persistence
+  const [darkMode, setDarkMode] = useState(false);
+  
+  // Initialize theme from localStorage
+  useEffect(() => {
+    // Check localStorage for saved theme preference
+    const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
+    const savedTimeRange = typeof window !== 'undefined' ? localStorage.getItem('timeRange') : null;
+    
+    if (savedTheme === 'dark') {
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
+    } else if (savedTheme === 'light') {
+      setDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      // If no saved preference, check system preference
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
+    
+    // Set time range from localStorage
+    if (savedTimeRange === 'daily') {
+      setTimeRange('daily');
+    }
+  }, []);
+
+  // Define chart colors
+  const chartColors = [
+    '#4f46e5', '#059669', '#2563eb', '#7c3aed', '#b91c1c', 
+    '#0891b2', '#9333ea', '#16a34a', '#ca8a04', '#c026d3'
+  ];
+
+  // Define status code colors
+  const statusCodeColors = {
+    '2xx': '#16a34a', // Green - Success
+    '3xx': '#3b82f6', // Blue - Redirect
+    '4xx': '#eab308', // Yellow - Client Error
+    '5xx': '#ef4444'  // Red - Server Error
+  };
+
+  // Fetch data and handle errors
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [summary, statusCodes, timeline, endpoints, ips] = await Promise.all([
-          fetch('/data/summary.json').then(res => res.json()),
-          fetch('/data/status_codes.json').then(res => res.json()),
-          fetch('/data/requests_timeline.json').then(res => res.json()),
-          fetch('/data/top_endpoints.json').then(res => res.json()),
-          fetch('/data/top_ips.json').then(res => res.json()),
+        setLoading(true);
+        setLoadingError(null);
+        
+        const [
+          summary, statusCodes, timeline, daily, traffic, endpoints, 
+          ips, botUser, methods, categories, fileTypes, referrers, 
+          errorPaths, logs
+        ] = await Promise.all([
+          fetch('/data/summary.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch summary data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/status_codes.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch status codes data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/requests_timeline.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch timeline data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/daily_requests.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch daily data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/traffic_timeline.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch traffic data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/top_endpoints.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch endpoints data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/top_ips.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch IPs data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/bot_user.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch bot/user data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/http_methods.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch HTTP methods data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/status_categories.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch status categories data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/file_types.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch file types data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/top_referrers.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch referrers data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/error_paths.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch error paths data: ${res.status}`);
+            return res.json();
+          }),
+          fetch('/data/filtered_logs.json').then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch logs data: ${res.status}`);
+            return res.json();
+          }),
         ]);
 
         setSummaryData(summary);
         setStatusData(statusCodes);
         setTimelineData(timeline);
+        setDailyData(daily);
+        setTrafficData(traffic);
         setEndpointsData(endpoints);
         setIpsData(ips);
+        setBotUserData(botUser);
+        setHttpMethodsData(methods);
+        setStatusCategoriesData(categories);
+        setFileTypesData(fileTypes);
+        setReferrersData(referrers);
+        setErrorPathsData(errorPaths);
+        setRawLogsData(logs);
+        setFilteredLogs(logs);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
+        setLoadingError(error.message || 'Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
@@ -36,210 +171,358 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
+  // Apply filters to logs
+  useEffect(() => {
+    if (!rawLogsData || !activeFilters || Object.keys(activeFilters).length === 0) {
+      setFilteredLogs(rawLogsData);
+      return;
+    }
+
+    const filtered = rawLogsData.filter(log => {
+      for (const [key, value] of Object.entries(activeFilters)) {
+        if (!value) continue;
+        
+        // Handle search query separately
+        if (key === 'searchQuery') {
+          const query = value.toLowerCase();
+          const searchables = [
+            log.path, 
+            log.ip, 
+            log.user_agent, 
+            log.method
+          ].filter(Boolean);
+          
+          if (!searchables.some(field => 
+            field && field.toLowerCase().includes(query)
+          )) {
+            return false;
+          }
+          continue;
+        }
+        
+        // Handle boolean filters
+        if (key === 'isBot') {
+          if (value === 'true' && !log.is_bot) return false;
+          if (value === 'false' && log.is_bot) return false;
+          continue;
+        }
+        
+        // Handle other filters
+        if (log[key] !== value) {
+          return false;
+        }
+      }
+      return true;
+    });
+    
+    setFilteredLogs(filtered);
+  }, [rawLogsData, activeFilters]);
+
+  // Format timestamps for timeline charts
+  const formatTimelineDataFn = (data) => {
+    return (data || []).map(point => {
+      // Extract hour from the timestamp (format: "YYYY-MM-DD HH:00")
+      const parts = point.hour.split(' ');
+      if (parts.length === 2) {
+        return {
+          ...point,
+          hour: parts[1], // Just show the hour:minute
+          fullTime: point.hour // Keep the full timestamp for tooltips
+        };
+      }
+      return point;
+    });
+  };
+  
+  // Memoized formatted timeline data
+  const formattedTimelineData = useMemo(() => formatTimelineDataFn(timelineData), [timelineData]);
+
+  const formatTrafficData = useMemo(() => {
+    return (trafficData || []).map(point => {
+      // Extract hour from the timestamp (format: "YYYY-MM-DD HH:00")
+      const parts = point.hour.split(' ');
+      if (parts.length === 2) {
+        return {
+          ...point,
+          hour: parts[1], // Just show the hour:minute
+          fullTime: point.hour // Keep the full timestamp for tooltips
+        };
+      }
+      return point;
+    });
+  }, [trafficData]);
+  
+  // Format daily data for better readability
+  const formatDailyData = useMemo(() => {
+    return (dailyData || []).map(point => {
+      // Format date for display (YYYY-MM-DD -> MM/DD)
+      const dateParts = point.date.split('-');
+      if (dateParts.length === 3) {
+        return {
+          ...point,
+          date: `${dateParts[1]}/${dateParts[2]}`, // MM/DD format
+          fullDate: point.date // Keep full date for tooltips
+        };
+      }
+      return point;
+    });
+  }, [dailyData]);
+
+  // Format status code data for better visualization
+  const formattedStatusData = useMemo(() => {
+    return (statusData || []).map(item => {
+      const code = parseInt(item.status);
+      let category = '';
+      let color = '';
+      
+      if (code >= 200 && code < 300) {
+        category = 'Success';
+        color = statusCodeColors['2xx'];
+      } else if (code >= 300 && code < 400) {
+        category = 'Redirect';
+        color = statusCodeColors['3xx'];
+      } else if (code >= 400 && code < 500) {
+        category = 'Client Error';
+        color = statusCodeColors['4xx'];
+      } else if (code >= 500 && code < 600) {
+        category = 'Server Error';
+        color = statusCodeColors['5xx'];
+      }
+      
+      return {
+        ...item,
+        label: `${item.status} - ${category}`,
+        color
+      };
+    });
+  }, [statusData]);
+
+  // These are the columns for the raw logs table
+  const logTableColumns = [
+    { key: 'timestamp', label: 'Time', render: (value) => value ? format(new Date(value), 'yyyy-MM-dd HH:mm:ss') : 'N/A' },
+    { key: 'ip', label: 'IP Address' },
+    { key: 'method', label: 'Method' },
+    { key: 'path', label: 'Path' },
+    { key: 'status', label: 'Status', render: (value) => {
+      const code = parseInt(value);
+      let color = 'text-gray-600 dark:text-gray-400';
+      
+      if (code >= 200 && code < 300) color = 'text-green-600 dark:text-green-400';
+      else if (code >= 300 && code < 400) color = 'text-blue-600 dark:text-blue-400';
+      else if (code >= 400 && code < 500) color = 'text-yellow-600 dark:text-yellow-400';
+      else if (code >= 500) color = 'text-red-600 dark:text-red-400';
+      
+      return <span className={color}>{value}</span>;
+    }},
+    { key: 'bytes', label: 'Size', render: (value) => `${Math.round(value / 1024)} KB` },
+    { key: 'is_bot', label: 'Bot', render: (value) => value ? 'Yes' : 'No' }
+  ];
+
+  // Computed filters based on available data
+  const availableFilters = useMemo(() => {
+    if (!rawLogsData || rawLogsData.length === 0) return [];
+
+    return [
+      {
+        key: 'searchQuery',
+        label: 'Search',
+        type: 'text',
+        placeholder: 'Search in requests...'
+      },
+      {
+        key: 'statusCode',
+        label: 'Status Code',
+        type: 'select',
+        options: [
+          { value: '200', label: '200 - OK' },
+          { value: '201', label: '201 - Created' },
+          { value: '301', label: '301 - Moved Permanently' },
+          { value: '302', label: '302 - Found' },
+          { value: '400', label: '400 - Bad Request' },
+          { value: '403', label: '403 - Forbidden' },
+          { value: '404', label: '404 - Not Found' },
+          { value: '500', label: '500 - Internal Server Error' }
+        ]
+      },
+      {
+        key: 'method',
+        label: 'HTTP Method',
+        type: 'select',
+        options: httpMethodsData.map(method => ({
+          value: method.method,
+          label: method.method
+        }))
+      },
+      {
+        key: 'isBot',
+        label: 'Bot Traffic',
+        type: 'select',
+        options: [
+          { value: 'true', label: 'Bot Traffic Only' },
+          { value: 'false', label: 'Human Traffic Only' }
+        ]
+      },
+      {
+        key: 'fileExtension',
+        label: 'File Type',
+        type: 'select',
+        options: fileTypesData.slice(0, 10).map(type => ({
+          value: type.type,
+          label: type.type
+        }))
+      }
+    ];
+  }, [rawLogsData, httpMethodsData, fileTypesData]);
+
+  // Handle filter application
+  const handleApplyFilters = (filters) => {
+    setActiveFilters(filters);
+  };
+
+  // Handle filter reset
+  const handleResetFilters = () => {
+    setActiveFilters({});
+  };
+
+  // Toggle between hourly and daily view with localStorage persistence
+  const toggleTimeRange = () => {
+    const newTimeRange = timeRange === 'hourly' ? 'daily' : 'hourly';
+    setTimeRange(newTimeRange);
+    localStorage.setItem('timeRange', newTimeRange);
+  };
+
+  // Toggle dark mode with localStorage persistence
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-medium text-gray-900 dark:text-white">Loading dashboard data...</h2>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
+          <h2 className="text-xl font-medium text-gray-900 dark:text-white mt-4">Loading dashboard data...</h2>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Please wait while we fetch the log analysis data.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (loadingError) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div className="text-red-500 dark:text-red-400 text-5xl mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-medium text-gray-900 dark:text-white mb-2">Failed to load dashboard data</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{loadingError}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition duration-200"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex items-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">NGINX Log Analyzer Dashboard</h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition duration-200">
+      <header className="bg-white dark:bg-gray-800 shadow sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-600 dark:text-indigo-400 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clipRule="evenodd" />
+              </svg>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">NGINX Log Analyzer</h1>
+            </div>
+            <div className="flex space-x-4">
+              <button 
+                onClick={toggleDarkMode}
+                className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition duration-200"
+                aria-label="Toggle dark mode"
+              >
+                {darkMode ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+          {summaryData?.generated_at && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Last updated: {format(new Date(summaryData.generated_at), 'yyyy-MM-dd HH:mm:ss')}
+            </p>
+          )}
         </div>
       </header>
       
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Summary Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <StatsCard title="Total Requests" value={summaryData?.total_requests || 0} />
-            <StatsCard title="Data Transferred" value={`${summaryData?.total_transferred_mb || 0} MB`} />
-            <StatsCard title="Unique IPs" value={summaryData?.unique_ips || 0} />
-            <StatsCard title="Unique Endpoints" value={summaryData?.unique_endpoints || 0} />
-          </div>
-          
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <ChartCard title="Requests Timeline">
-              <div className="w-full h-full">
-                {/* Timeline visualization would go here */}
-                <div className="bg-white dark:bg-gray-700 rounded p-2 overflow-x-auto">
-                  <div className="flex space-x-1 h-40">
-                    {timelineData.map((point, index) => (
-                      <div 
-                        key={index} 
-                        className="flex flex-col justify-end items-center"
-                        title={`${point.hour}: ${point.count} requests`}
-                      >
-                        <div 
-                          className="w-8 bg-blue-500 rounded-t"
-                          style={{ 
-                            height: `${Math.max(5, (point.count / Math.max(...timelineData.map(d => d.count))) * 100)}%` 
-                          }}
-                        ></div>
-                        <div className="text-xs mt-1 transform -rotate-45 origin-top-left">
-                          {point.hour.split(' ')[1]}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </ChartCard>
-            
-            <ChartCard title="Status Code Distribution">
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="grid grid-cols-2 gap-4 w-full">
-                  {statusData.map((item, index) => (
-                    <div key={index} className="flex items-center">
-                      <div 
-                        className={`w-4 h-4 rounded-full mr-2 ${getStatusColor(item.status)}`}
-                      ></div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">{item.status}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{item.count} requests</div>
-                      </div>
-                      <div className="text-sm font-semibold">
-                        {Math.round((item.count / summaryData?.total_requests) * 100)}%
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </ChartCard>
-          </div>
-          
-          {/* Tables Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TableCard title="Top Endpoints">
-              <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Endpoint</th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Requests</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {endpointsData.slice(0, 10).map((item, index) => (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">
-                          {item.endpoint}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-right">
-                          {item.count}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </TableCard>
-            
-            <TableCard title="Top IPs">
-              <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">IP Address</th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Requests</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {ipsData.slice(0, 10).map((item, index) => (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                          {item.ip}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 text-right">
-                          {item.count}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </TableCard>
-          </div>
-        </div>
+      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <DashboardContent 
+          timeRange={timeRange}
+          toggleTimeRange={toggleTimeRange}
+          summaryData={summaryData}
+          statusData={statusData}
+          timelineData={timelineData}
+          dailyData={dailyData}
+          trafficData={trafficData}
+          endpointsData={endpointsData}
+          ipsData={ipsData}
+          botUserData={botUserData}
+          httpMethodsData={httpMethodsData}
+          statusCategoriesData={statusCategoriesData}
+          fileTypesData={fileTypesData}
+          referrersData={referrersData}
+          errorPathsData={errorPathsData}
+          rawLogsData={rawLogsData}
+          filteredLogs={filteredLogs}
+          activeFilters={activeFilters}
+          handleApplyFilters={handleApplyFilters}
+          handleResetFilters={handleResetFilters}
+          availableFilters={availableFilters}
+          formattedTimelineData={formattedTimelineData}
+          formatTimelineDataFn={formatTimelineDataFn}
+          formatTrafficData={formatTrafficData}
+          formatDailyData={formatDailyData}
+          statusCodeColors={statusCodeColors}
+          chartColors={chartColors}
+          logTableColumns={logTableColumns}
+        />
       </main>
       
-      <footer className="bg-white dark:bg-gray-800 shadow mt-8">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-            NGINX Log Analyzer Dashboard - ICM 2025 HACKATON
-          </p>
-          <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Data generated: {new Date(summaryData?.generated_at || Date.now()).toLocaleString()}
-          </p>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-// Helper function to get color for status code
-function getStatusColor(status) {
-  const code = parseInt(status);
-  if (code < 300) return 'bg-green-500';
-  if (code < 400) return 'bg-blue-500';
-  if (code < 500) return 'bg-yellow-500';
-  return 'bg-red-500';
-}
-
-// Stats Card Component
-function StatsCard({ title, value }) {
-  return (
-    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-      <div className="p-5">
-        <div className="flex items-center">
-          <div className="ml-5 w-0 flex-1">
-            <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-              {title}
-            </dt>
-            <dd className="flex items-baseline">
-              <div className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {value}
-              </div>
-            </dd>
+      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="md:flex md:items-center md:justify-between">
+            <div className="md:order-1">
+              <p className="text-center text-base text-gray-500 dark:text-gray-400">
+                NGINX Log Analyzer Dashboard - ICM 2025 HACKATON
+              </p>
+              <p className="text-center text-sm text-gray-400 dark:text-gray-500 mt-1">
+                Analyzing {summaryData?.total_requests.toLocaleString() || 0} requests from NGINX logs
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-// Chart Card Component
-function ChartCard({ title, children }) {
-  return (
-    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-      <div className="px-4 py-5 sm:p-6">
-        <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-          {title}
-        </h3>
-        <div className="mt-5 h-64">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Table Card Component
-function TableCard({ title, children }) {
-  return (
-    <div>
-      <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
-        {title}
-      </h3>
-      {children}
+      </footer>
     </div>
   );
 }

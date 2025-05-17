@@ -1,0 +1,22 @@
+[
+  {
+    "category": "Success (2xx)",
+    "count": 7701,
+    "percentage": 77.0
+  },
+  {
+    "category": "Redirect (3xx)",
+    "count": 445,
+    "percentage": 4.5
+  },
+  {
+    "category": "Client Error (4xx)",
+    "count": 1810,
+    "percentage": 18.1
+  },
+  {
+    "category": "Server Error (5xx)",
+    "count": 44,
+    "percentage": 0.4
+  }
+]

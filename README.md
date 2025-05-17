@@ -89,16 +89,52 @@ It provides statistics on:
 ## Dashboard Features
 
 The dashboard visualizes:
-- Request volume over time
+- Request volume over time (hourly/daily toggle)
 - Status code distribution
 - Top endpoints
 - Top IP addresses
 - Top user agents
 - HTTP method distribution
 - Summary statistics
+- Bot vs. user traffic analysis
+- Error analysis with status code breakdowns
+- Error timeline tracking
+- Error path analysis with detailed status information
+- Traffic patterns and referrer analysis
+- Dark/light mode with persistent settings
 
 ## Requirements
 
 - Python 3.6+
 - Node.js 14+ (for dashboard)
 - npm (for dashboard)
+
+## Running the Complete Project
+
+Here's a quick start guide to get the entire system up and running:
+
+```bash
+# 1. Parse the logs and generate dashboard data
+uv run dashboard_data_generator.py access_log.gz
+
+# 2. Start the Next.js dashboard
+cd nginx-dashboard
+npm install  # Only needed first time
+npm run dev
+
+# 3. For continuous monitoring (in a separate terminal)
+cd ..  # Back to project root
+uv run log_monitor.py access_log.gz
+```
+
+Visit http://localhost:3000 to access the dashboard.
+
+## Tab Navigation
+
+The dashboard includes several tabs for different types of analysis:
+
+1. **Overview**: Summary statistics, status distribution, request timelines
+2. **Traffic Analysis**: Detailed traffic patterns, file types, and referrer sources
+3. **Error Analysis**: Comprehensive error tracking, status distribution, and error paths
+4. **Clients & Bots**: Bot detection, user agent analysis, and IP tracking
+5. **Raw Logs**: Detailed log entries with multi-dimensional filtering

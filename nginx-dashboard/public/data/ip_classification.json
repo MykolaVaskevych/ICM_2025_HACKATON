@@ -1,0 +1,18 @@
+[
+  {
+    "class": "private",
+    "count": 0
+  },
+  {
+    "class": "public",
+    "count": 10000
+  },
+  {
+    "class": "loopback",
+    "count": 0
+  },
+  {
+    "class": "other",
+    "count": 0
+  }
+]

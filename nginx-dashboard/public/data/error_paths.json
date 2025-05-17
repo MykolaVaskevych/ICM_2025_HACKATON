@@ -1,0 +1,163 @@
+[
+  {
+    "path": "/xmlrpc.php",
+    "count": 205,
+    "status": 405,
+    "status_distribution": {
+      "405": 205
+    }
+  },
+  {
+    "path": "/Capercaillie/",
+    "count": 22,
+    "status": 404,
+    "status_distribution": {
+      "404": 22
+    }
+  },
+  {
+    "path": "/projects/JEvaluator/",
+    "count": 14,
+    "status": 404,
+    "status_distribution": {
+      "404": 14
+    }
+  },
+  {
+    "path": "/wp-emoji-release.min.js",
+    "count": 14,
+    "status": 404,
+    "status_distribution": {
+      "404": 14
+    }
+  },
+  {
+    "path": "/photography/Prehistory/Malta/GGantija",
+    "count": 12,
+    "status": 404,
+    "status_distribution": {
+      "404": 12
+    }
+  },
+  {
+    "path": "/wp-content/themes/seotheme/db.php?u",
+    "count": 12,
+    "status": 403,
+    "status_distribution": {
+      "403": 12
+    }
+  },
+  {
+    "path": "/gallery/?gallery=./2004-04-04%20Tuscany%20-%20San%20Galgano",
+    "count": 10,
+    "status": 404,
+    "status_distribution": {
+      "404": 10
+    }
+  },
+  {
+    "path": "/gallery/?gallery=./2004-08-08%20Tuscany%20-%20San%20Galgano",
+    "count": 10,
+    "status": 404,
+    "status_distribution": {
+      "404": 10
+    }
+  },
+  {
+    "path": "/wp-content/plugins/fix/up.php",
+    "count": 10,
+    "status": 404,
+    "status_distribution": {
+      "404": 9,
+      "403": 1
+    }
+  },
+  {
+    "path": "/Loreena",
+    "count": 8,
+    "status": 404,
+    "status_distribution": {
+      "404": 8
+    }
+  },
+  {
+    "path": "/",
+    "count": 8,
+    "status": 403,
+    "status_distribution": {
+      "403": 8
+    }
+  },
+  {
+    "path": "/Loreena/",
+    "count": 7,
+    "status": 404,
+    "status_distribution": {
+      "404": 7
+    }
+  },
+  {
+    "path": "/wp-content/uploads/2017/04/20090101-dunguaire.1-1440x900-1024x640.jpg",
+    "count": 7,
+    "status": 404,
+    "status_distribution": {
+      "404": 7
+    }
+  },
+  {
+    "path": "/wp-admin/css/",
+    "count": 6,
+    "status": 403,
+    "status_distribution": {
+      "403": 6
+    }
+  },
+  {
+    "path": "/ALFA_DATA/alfacgiapi/perl.alfa",
+    "count": 6,
+    "status": 403,
+    "status_distribution": {
+      "403": 6
+    }
+  },
+  {
+    "path": "/wp-content/plugins/apikey/apikey.php?test=hello",
+    "count": 6,
+    "status": 403,
+    "status_distribution": {
+      "403": 6
+    }
+  },
+  {
+    "path": "/plugins/content/apismtp/apismtp.php?test=hello",
+    "count": 6,
+    "status": 403,
+    "status_distribution": {
+      "403": 6
+    }
+  },
+  {
+    "path": "/alfacgiapi/perl.alfa",
+    "count": 6,
+    "status": 403,
+    "status_distribution": {
+      "403": 6
+    }
+  },
+  {
+    "path": "/wp-content/plugins/apikey/apikey.php.suspected?test=hello",
+    "count": 6,
+    "status": 403,
+    "status_distribution": {
+      "403": 6
+    }
+  },
+  {
+    "path": "/plugins/content/apismtp/apismtp.php.suspected?test=hello",
+    "count": 6,
+    "status": 403,
+    "status_distribution": {
+      "403": 6
+    }
+  }
+]

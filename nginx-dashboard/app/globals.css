@@ -1,26 +1,166 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: 255, 255, 255; /* white */
+  --foreground: 23, 23, 23; /* nearly black */
+  
+  --card: 255, 255, 255;
+  --card-foreground: 23, 23, 23;
+  
+  --primary: 79, 70, 229; /* indigo-600 */
+  --primary-foreground: 255, 255, 255;
+  
+  --secondary: 243, 244, 246; /* gray-100 */
+  --secondary-foreground: 31, 41, 55; /* gray-800 */
+  
+  --muted: 243, 244, 246; /* gray-100 */
+  --muted-foreground: 107, 114, 128; /* gray-500 */
+  
+  --accent: 243, 244, 246; /* gray-100 */
+  --accent-foreground: 31, 41, 55; /* gray-800 */
+  
+  --destructive: 239, 68, 68; /* red-500 */
+  --destructive-foreground: 255, 255, 255;
+  
+  --success: 16, 185, 129; /* green-500 */
+  --success-foreground: 255, 255, 255;
+  
+  --warning: 234, 179, 8; /* yellow-500 */
+  --warning-foreground: 255, 255, 255;
+  
+  --info: 59, 130, 246; /* blue-500 */
+  --info-foreground: 255, 255, 255;
+  
+  --border: 229, 231, 235; /* gray-200 */
+  --input: 229, 231, 235; /* gray-200 */
+  --ring: 79, 70, 229; /* indigo-600 */
+  
+  --radius: 0.5rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  --background: 17, 24, 39; /* gray-900 */
+  --foreground: 237, 237, 237; /* nearly white */
+  
+  --card: 31, 41, 55; /* gray-800 */
+  --card-foreground: 255, 255, 255;
+  
+  --primary: 79, 70, 229; /* indigo-600 */
+  --primary-foreground: 255, 255, 255;
+  
+  --secondary: 55, 65, 81; /* gray-700 */
+  --secondary-foreground: 243, 244, 246; /* gray-100 */
+  
+  --muted: 55, 65, 81; /* gray-700 */
+  --muted-foreground: 156, 163, 175; /* gray-400 */
+  
+  --accent: 55, 65, 81; /* gray-700 */
+  --accent-foreground: 243, 244, 246; /* gray-100 */
+  
+  --destructive: 248, 113, 113; /* red-400 */
+  --destructive-foreground: 31, 41, 55; /* gray-800 */
+  
+  --success: 52, 211, 153; /* green-400 */
+  --success-foreground: 31, 41, 55;
+  
+  --warning: 251, 191, 36; /* yellow-400 */
+  --warning-foreground: 31, 41, 55;
+  
+  --info: 96, 165, 250; /* blue-400 */
+  --info-foreground: 31, 41, 55;
+  
+  --border: 55, 65, 81; /* gray-700 */
+  --input: 55, 65, 81; /* gray-700 */
+  --ring: 79, 70, 229; /* indigo-600 */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.bg-background {
+  background-color: rgb(var(--background));
+}
+
+.text-foreground {
+  color: rgb(var(--foreground));
+}
+
+.bg-card {
+  background-color: rgb(var(--card));
+}
+
+.text-card-foreground {
+  color: rgb(var(--card-foreground));
+}
+
+.bg-primary {
+  background-color: rgb(var(--primary));
+}
+
+.text-primary {
+  color: rgb(var(--primary));
+}
+
+/* Custom chart styling */
+.chart-tooltip {
+  position: absolute;
+  padding: 8px 12px;
+  background: rgb(var(--card));
+  color: rgb(var(--card-foreground));
+  border: 1px solid rgb(var(--border));
+  border-radius: var(--radius);
+  pointer-events: none;
+  font-size: 12px;
+  z-index: 10;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  max-width: 300px;
+  white-space: normal;
+}
+
+/* Ensure SVG text is readable in dark mode */
+.dark .chart-text,
+.dark .tick text {
+  fill: rgb(var(--foreground));
+}
+
+/* Chart loading state */
+.chart-skeleton {
+  @apply animate-pulse bg-secondary rounded;
+  height: 100%;
+  width: 100%;
+}
+
+/* Table styling */
+.data-table th {
+  @apply bg-secondary text-secondary-foreground text-xs uppercase tracking-wider py-3 px-6 text-left font-medium;
+}
+
+.data-table tr:nth-child(even) {
+  @apply bg-muted/50;
+}
+
+.data-table td {
+  @apply py-4 px-6 text-sm;
+}
+
+/* Responsive breakpoints for charts */
+@media (max-width: 1024px) {
+  .chart-container {
+    height: 250px !important; 
+  }
+}
+
+@media (max-width: 768px) {
+  .chart-container {
+    height: 200px !important;
+  }
 }
