@@ -1,177 +1,113 @@
-# ICM_2025_HACKATON - NGINX Log Dashboard
+# NGINX Log Analytics Dashboard
 
-A comprehensive dashboard for monitoring and analyzing NGINX access logs with PostgreSQL integration.
-
-## Project Components
-
-1. **log_parser.py**: Python script to parse Nginx access logs and generate statistics
-2. **dashboard_data_generator.py**: Generates formatted JSON data for the Next.js dashboard
-3. **nginx-dashboard/**: Next.js application for visualizing the log data
-4. **log_processor.js**: Node.js script for incremental log processing with PostgreSQL integration
-5. **DB_MIGRATION_TODO.md**: Database migration plan and implementation details
+A complete JavaScript solution for processing NGINX logs and visualizing the data in a modern dashboard.
 
 ## Features
 
-- Real-time log analysis with both file-based and PostgreSQL database options
-- Efficient line-by-line log processing
-- Interactive visualizations using D3.js
-- Dark/light mode support
-- Customizable time range (hourly/daily views)
-- Multiple analysis tabs:
-  - Overview with key metrics
-  - Traffic analysis with bandwidth metrics
-  - Error analysis with detailed breakdowns
-  - Client/bot traffic inspection with geo-distribution
-  - Raw logs with advanced filtering
-- Import/export capabilities (JSON, Excel, PDF)
-- Responsive design for all screen sizes
+- Real-time log processing using Node.js
+- PostgreSQL database for efficient storage and querying
+- Interactive dashboard built with Next.js and React
+- Line-by-line log file processing for handling large log files
+- Incremental log processing (only processes new log entries)
+- Bot detection based on user agent patterns
+- Extensive log statistics and visualizations
+- Filtering and search capabilities
 
-## Getting Started
+## System Architecture
 
-### Python File-Based Method (Original)
+The system consists of three main components:
+
+1. **Log Processor** (`log_processor.js`): Processes NGINX log files line by line and stores the data in PostgreSQL.
+2. **Dashboard API** (`nginx-dashboard/app/api`): Retrieves data from PostgreSQL and serves it to the dashboard.
+3. **Dashboard UI** (`nginx-dashboard/app/dashboard`): Visualizes the log data with interactive charts and tables.
+
+## Prerequisites
+
+- Node.js v16 or higher
+- PostgreSQL v12 or higher
+- npm or yarn
+
+## Installation
+
+### 1. Set up PostgreSQL Database
 
 ```bash
-# 1. Parse the logs and generate dashboard data
-uv run dashboard_data_generator.py access_log.gz
+# Connect to PostgreSQL
+psql -U postgres
 
-# 2. Start the Next.js dashboard
-cd nginx-dashboard
-npm install  # Only needed first time
-npm run dev
+# Create database and user
+CREATE DATABASE nginx_logs;
+CREATE USER nginx_user WITH ENCRYPTED PASSWORD 'secure_password';
+GRANT ALL PRIVILEGES ON DATABASE nginx_logs TO nginx_user;
 
-# 3. For continuous monitoring (in a separate terminal)
-cd ..  # Back to project root
-uv run log_monitor.py access_log.gz
+# Connect to the new database
+\c nginx_logs
+
+# Create tables
+CREATE TABLE logs (
+  id SERIAL PRIMARY KEY,
+  ip VARCHAR(45) NOT NULL,
+  timestamp TIMESTAMP NOT NULL,
+  method VARCHAR(10) NOT NULL,
+  path TEXT NOT NULL,
+  protocol VARCHAR(10) NOT NULL,
+  status INTEGER NOT NULL,
+  bytes INTEGER NOT NULL,
+  referrer TEXT,
+  user_agent TEXT,
+  is_bot BOOLEAN DEFAULT FALSE,
+  processing_time FLOAT
+);
+
+CREATE TABLE status_stats (
+  status INTEGER PRIMARY KEY,
+  count INTEGER NOT NULL
+);
+
+CREATE TABLE hourly_stats (
+  id SERIAL PRIMARY KEY,
+  hour INTEGER NOT NULL,
+  day DATE NOT NULL,
+  count INTEGER NOT NULL,
+  bytes_total BIGINT NOT NULL,
+  UNIQUE(hour, day)
+);
+
+CREATE TABLE path_stats (
+  path TEXT PRIMARY KEY,
+  count INTEGER NOT NULL,
+  avg_time FLOAT
+);
+
+# Create indexes for better performance
+CREATE INDEX idx_logs_timestamp ON logs(timestamp);
+CREATE INDEX idx_logs_ip ON logs(ip);
+CREATE INDEX idx_logs_status ON logs(status);
+CREATE INDEX idx_logs_path ON logs(path);
+CREATE INDEX idx_logs_is_bot ON logs(is_bot);
 ```
 
-Visit http://localhost:3000 to access the dashboard.
+### 2. Install Dependencies
 
-### JavaScript with PostgreSQL Method (New)
+```bash
+# Install root dependencies
+npm install
 
-1. Set up PostgreSQL:
-   ```bash
-   # Install PostgreSQL (MacOS example)
-   brew install postgresql@15
-   brew services start postgresql@15
+# Install dashboard dependencies
+cd nginx-dashboard
+npm install
+```
 
-   # Create database and user
-   createdb nginx_logs
-   psql -c "CREATE USER nginx_user WITH ENCRYPTED PASSWORD 'secure_password';" nginx_logs
-   psql -c "GRANT ALL PRIVILEGES ON DATABASE nginx_logs TO nginx_user;" nginx_logs
+### 3. Configure Log Processor
 
-   # Initialize schema (run the SQL in DB_MIGRATION_TODO.md)
-   ```
-
-2. Configure the log processor:
-   ```javascript
-   // In log_processor.js
-   const config = {
-     logFile: path.resolve(__dirname, 'your_access.log'),
-     positionFile: path.resolve(__dirname, '.your_access.log.position'),
-     updateInterval: '*/3 * * * *', // Every 3 minutes
-     batchSize: 1000,
-     postgres: {
-       user: 'nginx_user',
-       host: 'localhost',
-       database: 'nginx_logs',
-       password: 'secure_password',
-       port: 5432,
-     }
-   };
-   ```
-
-3. Run the log processor:
-   ```bash
-   npm run process-logs
-   ```
-
-4. Enable API mode and run the dashboard:
-   ```bash
-   cd nginx-dashboard
-   npm run dev:db  # Uses API endpoints instead of static files
-   ```
-
-5. Access the dashboard at http://localhost:3000
-
-## Dashboard Features
-
-The dashboard visualizes:
-- Request volume over time (hourly/daily toggle)
-- Status code distribution
-- Top endpoints
-- Top IP addresses
-- Top user agents
-- HTTP method distribution
-- Summary statistics
-- Bot vs. user traffic analysis
-- Bot geographical distribution
-- Bot traffic patterns
-- Error analysis with status code breakdowns
-- Error timeline tracking
-- Error path analysis with detailed status information
-- Traffic patterns and referrer analysis
-- Dark/light mode with persistent settings
-
-## Log Parser Features
-
-The parser extracts and analyzes:
-- IP addresses
-- Timestamps
-- HTTP request methods and paths
-- Status codes
-- Response sizes
-- User agents
-- Referrers
-- Bot detection
-
-It provides statistics on:
-- Request volume over time
-- Distribution of status codes
-- Top accessed endpoints
-- Top IP addresses
-- Top user agents
-- Total data transferred
-- Bot vs. human traffic
-
-## Tab Navigation
-
-The dashboard includes several tabs for different types of analysis:
-
-1. **Overview**: Summary statistics, status distribution, request timelines
-2. **Traffic Analysis**: Detailed traffic patterns, file types, and referrer sources
-3. **Error Analysis**: Comprehensive error tracking, status distribution, and error paths
-4. **Clients & Bots**: Bot detection, geo-distribution, traffic patterns, and targeted endpoints
-5. **Raw Logs**: Detailed log entries with multi-dimensional filtering
-
-## Requirements
-
-- Python 3.6+ (for Python method)
-- Node.js 18+ (for dashboard and PostgreSQL method)
-- npm (for dashboard)
-- PostgreSQL 15+ (for database method)
-- Modern web browser
-
-## Configuration
-
-### Log Processor Configuration
-
-Edit the configuration object in `log_processor.js`:
+Edit `log_processor.js` to set your PostgreSQL connection details and log file path:
 
 ```javascript
 const config = {
-  // Path to your NGINX access log file
   logFile: path.resolve(__dirname, 'access.log'),
-  
-  // File to store the processing position for incremental updates
   positionFile: path.resolve(__dirname, '.access.log.position'),
-  
-  // Cron schedule for checking for new log entries
   updateInterval: '*/3 * * * *', // Every 3 minutes
-  
-  // Number of log entries to process in one batch
   batchSize: 1000,
-  
-  // PostgreSQL connection parameters
   postgres: {
     user: 'nginx_user',
     host: 'localhost',
@@ -182,21 +118,75 @@ const config = {
 };
 ```
 
-### Dashboard Configuration
+## Usage
 
-To switch between file-based and API/database mode:
+### Process Logs
 
-1. Edit `/nginx-dashboard/app/dashboard/page-db.js` and change the `USE_API` flag:
-   ```javascript
-   // Flag to toggle between API and static file approach
-   const USE_API = true; // Change to true for API/database mode
-   ```
+To process logs and store them in PostgreSQL:
 
-2. Run with database mode:
-   ```bash
-   npm run dev:db
-   ```
+```bash
+npm run process
+```
+
+### Generate Dashboard Data
+
+To generate static JSON files for the dashboard (alternative to PostgreSQL):
+
+```bash
+npm run generate
+```
+
+### Monitor Log Files
+
+To continuously monitor log files for changes and process new entries:
+
+```bash
+npm run monitor
+```
+
+### Run Dashboard
+
+To run the dashboard with database integration:
+
+```bash
+cd nginx-dashboard
+npm run dev:db
+```
+
+## Dashboard
+
+The dashboard is available at `http://localhost:3000` and provides:
+
+- Summary statistics
+- Status code distribution
+- Request timeline
+- Traffic analysis
+- Top IPs and endpoints
+- Bot vs. user traffic
+- Error analysis
+- Raw log search and filtering
+
+## Database vs. File-Based Approach
+
+The system supports two approaches:
+
+1. **Database Approach** (Recommended): Stores log data in PostgreSQL for efficient querying and real-time updates.
+   - Better performance with large log files
+   - Efficient filtering and querying
+   - Real-time updates
+   - Scalable to millions of log entries
+
+2. **File-Based Approach**: Generates static JSON files for the dashboard.
+   - Simpler setup (no database required)
+   - Suitable for smaller log files
+   - Requires regenerating data files after log changes
+
+To toggle between approaches:
+
+- In `nginx-dashboard/app/api/data/route.js`: Set `USE_DATABASE` to `true` or `false`
+- In `nginx-dashboard/app/dashboard/page-db.js`: Set `USE_API` to `true` or `false`
 
 ## License
 
 MIT
+EOF < /dev/null

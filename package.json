@@ -3,6 +3,9 @@
     "file-saver": "^2.0.5",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "pg": "^8.11.3",
+    "node-cron": "^3.0.3",
+    "chokidar": "^3.6.0"
   }
 }

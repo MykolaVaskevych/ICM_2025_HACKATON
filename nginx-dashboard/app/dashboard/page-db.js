@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import DashboardContent from './DashboardContent';
 
 // Flag to toggle between API and static file approach
-const USE_API = false;
+const USE_API = true;
 
 export default function DashboardPage() {
   // State for all data

@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-// Import database functions (uncomment when ready to use)
-// import db from '../db';
+// Import database functions
+import db from '../db';
 
 // Flag to toggle between DB and file-based approach
-const USE_DATABASE = false;
+const USE_DATABASE = true;
 
 // Helper function for API responses
 function apiResponse(data, status = 200) {
@@ -86,10 +86,8 @@ async function getFileData(type) {
   }
 }
 
-// Database-based data handler (to be implemented)
+// Database-based data handler
 async function getDatabaseData(type, params = {}) {
-  // When database implementation is ready, uncomment and use these functions
-  /*
   switch (type) {
     case 'summary':
       return await db.getSummary();
@@ -153,7 +151,30 @@ async function getDatabaseData(type, params = {}) {
       ]);
       
       // Format summary for compatibility with current dashboard
-      const formattedSummary = Object.entries(summary).map(([metric, value]) => ({ metric, value }));
+      const formattedSummary = Object.entries(summary).map(([metric, value]) => ({
+        metric: metric.charAt(0).toUpperCase() + metric.slice(1).replace(/([A-Z])/g, ' $1').trim(),
+        value: value
+      }));
+      
+      // Generate status categories
+      const statusCategories = [
+        { category: '2xx', count: statusCodes.filter(s => s.status >= 200 && s.status < 300).reduce((sum, s) => sum + s.count, 0) },
+        { category: '3xx', count: statusCodes.filter(s => s.status >= 300 && s.status < 400).reduce((sum, s) => sum + s.count, 0) },
+        { category: '4xx', count: statusCodes.filter(s => s.status >= 400 && s.status < 500).reduce((sum, s) => sum + s.count, 0) },
+        { category: '5xx', count: statusCodes.filter(s => s.status >= 500 && s.status < 600).reduce((sum, s) => sum + s.count, 0) }
+      ];
+      
+      // Generate HTTP methods data if not available
+      const httpMethods = rawLogs.reduce((acc, log) => {
+        const method = log.method || 'UNKNOWN';
+        acc[method] = (acc[method] || 0) + 1;
+        return acc;
+      }, {});
+      
+      const httpMethodsData = Object.entries(httpMethods).map(([method, count]) => ({
+        method,
+        count
+      })).sort((a, b) => b.count - a.count);
       
       return {
         summary: formattedSummary,
@@ -166,16 +187,14 @@ async function getDatabaseData(type, params = {}) {
         errorPathsData: errors,
         botUserData: botUser,
         fileTypesData: fileTypes,
-        rawLogsData: rawLogs
+        rawLogsData: rawLogs,
+        statusCategories: statusCategories,
+        httpMethodsData: httpMethodsData
       };
       
     default:
       throw new Error('Invalid data type requested');
   }
-  */
-  
-  // For now, fallback to file-based approach
-  return await getFileData(type);
 }
 
 export async function GET(request) {
@@ -217,14 +236,9 @@ export async function POST(request) {
     const data = await request.json();
     
     if (USE_DATABASE) {
-      // Database approach (future implementation)
-      // const logs = await db.getRawLogs(data.filters || {}, data.limit || 1000);
-      // return apiResponse({ data: logs });
-      
-      // For now, return static data
-      const dataDir = path.join(process.cwd(), 'public', 'data');
-      const rawLogsData = JSON.parse(fs.readFileSync(path.join(dataDir, 'filtered_logs.json'), 'utf8'));
-      return apiResponse({ data: rawLogsData });
+      // Database approach
+      const logs = await db.getRawLogs(data.filters || {}, data.limit || 1000);
+      return apiResponse({ data: logs });
     } else {
       // File-based approach (current implementation)
       const dataDir = path.join(process.cwd(), 'public', 'data');

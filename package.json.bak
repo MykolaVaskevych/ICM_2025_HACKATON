@@ -1,0 +1,18 @@
+{
+  "name": "nginx-log-processor",
+  "version": "1.0.0",
+  "description": "NGINX Log Processor with PostgreSQL",
+  "main": "log_processor.js",
+  "scripts": {
+    "process": "node log_processor.js",
+    "generate": "node dashboard_data_generator.js",
+    "monitor": "node log_monitor.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "pg": "^8.11.3",
+    "node-cron": "^3.0.3",
+    "chokidar": "^3.6.0"
+  }
+}
+EOF < /dev/null
