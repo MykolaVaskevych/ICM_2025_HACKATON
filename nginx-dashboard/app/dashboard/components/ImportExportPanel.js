@@ -3,6 +3,22 @@
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import PDFReportGenerator from './PDFReportGenerator';
+
+// Create a safe toast wrapper to avoid "toast is not defined" errors
+const safeToast = {
+  success: (message) => {
+    console.log('[Toast Success]:', message);
+    if (typeof toast !== 'undefined' && toast.success) {
+      toast.success(message);
+    }
+  },
+  error: (message) => {
+    console.error('[Toast Error]:', message);
+    if (typeof toast !== 'undefined' && toast.error) {
+      toast.error(message);
+    }
+  }
+};
 // Import libraries only on client side
 const isBrowser = typeof window !== 'undefined';
 
@@ -23,85 +39,65 @@ export default function ImportExportPanel({ rawLogsData, dashboardData, onImport
     if (!file) return;
     
     setImportStatus('Loading...');
+    setIsProcessing(true);
     
     try {
       const fileExt = file.name.split('.').pop().toLowerCase();
       
-      if (fileExt === 'json') {
-        // Import JSON
-        const text = await file.text();
-        const data = JSON.parse(text);
-        
-        if (Array.isArray(data)) {
-          onImport(data);
-          setImportStatus(`Successfully imported ${data.length} log entries.`);
-        } else {
-          setImportStatus('Invalid JSON format. Expected an array of log entries.');
+      // Process all file types through the unified API endpoint
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Track progress for large files
+      let uploadProgress = 0;
+      const updateProgressInterval = setInterval(() => {
+        if (uploadProgress < 90) {
+          uploadProgress += 5;
+          setImportProgress(uploadProgress);
         }
-      } else if (fileExt === 'gz') {
-        setImportStatus('Processing compressed file...');
-        setIsProcessing(true);
-        
-        try {
-          // Process compressed file using actual API endpoint
-          const formData = new FormData();
-          formData.append('file', file);
-          
-          const response = await fetch('/api/import/gz', {
-            method: 'POST',
-            body: formData
-          });
-          
-          if (!response.ok) {
-            throw new Error(`Failed to process compressed file: ${response.statusText}`);
-          }
-          
-          const data = await response.json();
-          onImport(data);
-          
-          setImportStatus(`Successfully imported ${data.length} log entries from compressed file.`);
-          setIsProcessing(false);
-          toast.success('Compressed file import complete!');
-        } catch (error) {
-          console.error('Error importing compressed file:', error);
-          setImportStatus(`Error importing compressed file: ${error.message}`);
-          setIsProcessing(false);
-          toast.error('Error importing compressed file');
-        }
-      } else if (fileExt === 'txt' || fileExt === 'log') {
-        // Basic text log import
-        const text = await file.text();
-        const lines = text.split('\n').filter(line => line.trim());
-        
-        // Simple parsing - in real app, use the log_parser.py logic here
-        const parsedLogs = lines.map(line => {
-          // Very basic parsing to extract just a few fields
-          const ipMatch = line.match(/(\d+\.\d+\.\d+\.\d+)/);
-          const dateMatch = line.match(/\[([^\]]+)\]/);
-          const requestMatch = line.match(/"([^"]+)"/);
-          const statusMatch = line.match(/ (\d{3}) /);
-          
-          return {
-            ip: ipMatch ? ipMatch[1] : 'unknown',
-            timestamp: dateMatch ? new Date(dateMatch[1].replace(':', ' ')).toISOString() : new Date().toISOString(),
-            request: requestMatch ? requestMatch[1] : 'unknown',
-            status: statusMatch ? statusMatch[1] : '200',
-            bytes: 0,
-            path: requestMatch ? requestMatch[1].split(' ')[1] : '/',
-            method: requestMatch ? requestMatch[1].split(' ')[0] : 'GET',
-            user_agent: 'unknown',
-            is_bot: false
-          };
+      }, 500);
+      
+      try {
+        const response = await fetch('/api/import/file', {
+          method: 'POST',
+          body: formData
         });
         
-        onImport(parsedLogs);
-        setImportStatus(`Imported ${parsedLogs.length} log entries.`);
-      } else {
-        setImportStatus('Unsupported file format. Please use .json, .log, or .txt.');
+        // Clear progress interval
+        clearInterval(updateProgressInterval);
+        setImportProgress(95);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to process file: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        setImportProgress(100);
+        
+        if (result.success) {
+          if (result.count > 0 && onImport) {
+            // Trigger parent component refresh
+            onImport(result.data || []);
+          }
+          
+          setImportStatus(`Successfully imported ${result.count} log entries.`);
+          safeToast.success(`Import complete: ${result.count} log entries processed`);
+        } else {
+          throw new Error(result.message || 'Unknown error during import');
+        }
+      } catch (error) {
+        console.error('Error importing file:', error);
+        setImportStatus(`Error: ${error.message}`);
+        safeToast.error(`Import failed: ${error.message}`);
+      } finally {
+        setIsProcessing(false);
+        setTimeout(() => setImportProgress(0), 3000);
       }
     } catch (error) {
       console.error('Import error:', error);
       setImportStatus(`Error importing file: ${error.message}`);
+      setIsProcessing(false);
+      safeToast.error('Import failed');
     }
   };
   
@@ -111,24 +107,54 @@ export default function ImportExportPanel({ rawLogsData, dashboardData, onImport
       setImportStatus('Importing from database...');
       setIsProcessing(true);
       
-      // Direct fetch from the API without mock data
-      const response = await fetch('/api/import/database');
+      // Track progress
+      let importProgress = 0;
+      const updateProgressInterval = setInterval(() => {
+        if (importProgress < 90) {
+          importProgress += 10;
+          setImportProgress(importProgress);
+        }
+      }, 300);
       
-      if (!response.ok) {
-        throw new Error(`Database import failed: ${response.statusText}`);
+      try {
+        // Direct fetch from the API without mock data
+        const response = await fetch('/api/import/database');
+        
+        // Clear progress interval
+        clearInterval(updateProgressInterval);
+        setImportProgress(95);
+        
+        if (!response.ok) {
+          throw new Error(`Database import failed: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        setImportProgress(100);
+        
+        if (result.success) {
+          if (result.data && onImport) {
+            // Trigger parent component refresh
+            onImport(result.data);
+          }
+          
+          setImportStatus(`Successfully imported ${result.count || 0} log entries from database.`);
+          safeToast.success('Database import complete!');
+        } else {
+          throw new Error(result.message || 'Unknown error during database import');
+        }
+      } catch (error) {
+        console.error('Database import error:', error);
+        setImportStatus(`Error importing from database: ${error.message}`);
+        safeToast.error('Database import failed');
+      } finally {
+        setIsProcessing(false);
+        setTimeout(() => setImportProgress(0), 3000);
       }
-      
-      const data = await response.json();
-      onImport(data);
-      
-      setImportStatus(`Successfully imported ${data.length} log entries from database.`);
-      setIsProcessing(false);
-      toast.success('Database import complete!');
     } catch (error) {
       console.error('Database import error:', error);
       setImportStatus(`Error importing from database: ${error.message}`);
       setIsProcessing(false);
-      toast.error('Database import failed');
+      safeToast.error('Database import failed');
     }
   };
   
