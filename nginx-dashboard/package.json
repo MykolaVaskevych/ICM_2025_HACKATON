@@ -14,17 +14,18 @@
     "monitor": "node ../log_monitor.js"
   },
   "dependencies": {
+    "chokidar": "^3.6.0",
     "d3": "^7.9.0",
     "date-fns": "^2.30.0",
     "file-saver": "^2.0.5",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "next": "15.3.2",
+    "node-cron": "^3.0.3",
     "pg": "^8.11.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "node-cron": "^3.0.3",
-    "chokidar": "^3.6.0",
+    "react-hot-toast": "^2.5.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
