@@ -1,0 +1,42 @@
+[
+  {
+    "endpoint": "/robots.txt",
+    "count": 303
+  },
+  {
+    "endpoint": "/xmlrpc.php",
+    "count": 206
+  },
+  {
+    "endpoint": "/",
+    "count": 150
+  },
+  {
+    "endpoint": "/wp-login.php",
+    "count": 109
+  },
+  {
+    "endpoint": "//xmlrpc.php",
+    "count": 76
+  },
+  {
+    "endpoint": "/sitemap_index.xml",
+    "count": 68
+  },
+  {
+    "endpoint": "/ngg_tag-sitemap.xml",
+    "count": 64
+  },
+  {
+    "endpoint": "/category-sitemap.xml",
+    "count": 51
+  },
+  {
+    "endpoint": "/wp-admin/",
+    "count": 49
+  },
+  {
+    "endpoint": "/wp-login.php?redirect_to=https%3A%2F%2Fwebsite.local.lan%2Fwp-admin%2F&reauth=1",
+    "count": 48
+  }
+]

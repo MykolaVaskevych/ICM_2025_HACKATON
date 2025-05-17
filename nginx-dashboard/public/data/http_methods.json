@@ -1,0 +1,14 @@
+[
+  {
+    "method": "GET",
+    "count": 8285
+  },
+  {
+    "method": "POST",
+    "count": 1680
+  },
+  {
+    "method": "HEAD",
+    "count": 34
+  }
+]

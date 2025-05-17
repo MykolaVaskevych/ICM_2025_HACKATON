@@ -1,0 +1,42 @@
+[
+  {
+    "user_agent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.2; +https://openai.com/gptbot)",
+    "count": 3144
+  },
+  {
+    "user_agent": "WordPress/6.8; https://website.local.lan",
+    "count": 1608
+  },
+  {
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+    "count": 862
+  },
+  {
+    "user_agent": "Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)",
+    "count": 310
+  },
+  {
+    "user_agent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; ClaudeBot/1.0; +claudebot@anthropic.com)",
+    "count": 262
+  },
+  {
+    "user_agent": "Go-http-client/2.0",
+    "count": 230
+  },
+  {
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15 (Applebot/0.1; +http://www.apple.com/go/applebot)",
+    "count": 211
+  },
+  {
+    "user_agent": "GRequests/0.10",
+    "count": 195
+  },
+  {
+    "user_agent": "Mozilla/5.0 (compatible; ImagesiftBot; +imagesift.com)",
+    "count": 188
+  },
+  {
+    "user_agent": "WordPress/6.8.1; https://website.local.lan",
+    "count": 187
+  }
+]
