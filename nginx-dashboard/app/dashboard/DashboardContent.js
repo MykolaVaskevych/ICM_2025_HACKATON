@@ -304,7 +304,7 @@ export default function DashboardContent({
                     label: type.type,
                     color: chartColors[i % chartColors.length]
                   }))}
-                  tooltipFormatter={(d) => `${d.count.toLocaleString()} requests for .${d.type} files (${(d.count / summaryData.find(s => s.metric === 'Total Requests')?.value * 100).toFixed(1)}% of total)`}
+                  tooltipFormatter={(d) => `${d.count.toLocaleString()} requests for .${d.type} files`}
                   onClick={(d) => {
                     setActiveTab('logs');
                     handleApplyFilters({ path: `.${d.type}` });
@@ -358,7 +358,7 @@ export default function DashboardContent({
             rawLogsData={rawLogsData}
             timeRange={timeRange}
             formatTimelineDataFn={formatTimelineDataFn}
-            formattedTimelineData={formattedTimelineData}
+            formattedTimelineData={timeRange === 'hourly' && selectedDay ? filteredHourlyData : formattedTimelineData}
             formatDailyData={formatDailyData}
             statusCodeColors={statusCodeColors}
             handleApplyFilters={handleApplyFilters}
@@ -374,8 +374,10 @@ export default function DashboardContent({
             ipsData={ipsData}
             timelineData={timelineData}
             timeRange={timeRange}
+            formattedTimelineData={timeRange === 'hourly' && selectedDay ? filteredHourlyData : formattedTimelineData}
             handleApplyFilters={handleApplyFilters}
             handleIpClick={handleIpClick}
+            selectedDay={selectedDay}
           />
         );
 

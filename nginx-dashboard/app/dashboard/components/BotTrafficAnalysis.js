@@ -11,8 +11,10 @@ export default function BotTrafficAnalysis({
   ipsData,
   timelineData,
   timeRange,
+  formattedTimelineData,
   handleApplyFilters,
-  handleIpClick
+  handleIpClick,
+  selectedDay
 }) {
   // Get bot classification breakdown
   const botClassification = useMemo(() => {
@@ -53,6 +55,25 @@ export default function BotTrafficAnalysis({
   // Calculate bot traffic over time
   const botTrafficTimeline = useMemo(() => {
     if (timeRange === 'hourly') {
+      // Use the selected day if provided
+      if (selectedDay && formattedTimelineData) {
+        return formattedTimelineData.map(point => {
+          const matchingLogs = rawLogsData.filter(log => {
+            if (!log.timestamp) return false;
+            const logHour = new Date(log.timestamp).getHours() + ':00';
+            const logDate = new Date(log.timestamp).toISOString().split('T')[0];
+            return logHour === point.hour && 
+                   logDate === selectedDay && 
+                   log.is_bot;
+          });
+          return {
+            hour: point.hour,
+            count: matchingLogs.length,
+            fullTime: point.fullTime
+          };
+        });
+      }
+      
       // Extract hour from timestamp and count bot requests per hour
       const hourCounts = rawLogsData
         .filter(log => log.is_bot && log.timestamp)
