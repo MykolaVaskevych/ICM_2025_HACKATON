@@ -8,6 +8,7 @@ import ResponsiveGrid from './components/ResponsiveGrid';
 import D3Chart from './components/D3Chart';
 import DataTable from './components/DataTable';
 import ErrorAnalysis from './components/ErrorAnalysis';
+import BotTrafficAnalysis from './components/BotTrafficAnalysis';
 import DaySelector from './components/DaySelector';
 import ImportExportPanel from './components/ImportExportPanel';
 
@@ -367,110 +368,15 @@ export default function DashboardContent({
 
       case 'clients':
         return (
-          <>
-            <ResponsiveGrid columns={{ sm: 1, md: 1, lg: 2 }}>
-              {/* Bot vs User pie chart */}
-              <Card title="Bot Traffic Analysis">
-                <D3Chart 
-                  data={botUserData} 
-                  type="donut" 
-                  xKey="type" 
-                  yKey="count"
-                  colors={['#ef4444', '#10b981']}
-                  showLegend={true}
-                  legendItems={[
-                    { label: 'Bot Traffic', color: '#ef4444' },
-                    { label: 'User Traffic', color: '#10b981' }
-                  ]}
-                />
-              </Card>
-              
-              {/* Top User Agents */}
-              <Card title="Client Distribution">
-                <div className="h-full overflow-auto pb-4">
-                  <table className="min-w-full">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User Agent</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Count</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {rawLogsData.reduce((agents, log) => {
-                        if (!log.user_agent) return agents;
-                        
-                        const existingAgent = agents.find(a => a.agent === log.user_agent);
-                        if (existingAgent) {
-                          existingAgent.count++;
-                        } else {
-                          agents.push({
-                            agent: log.user_agent,
-                            count: 1,
-                            isBot: log.is_bot
-                          });
-                        }
-                        return agents;
-                      }, [])
-                      .sort((a, b) => b.count - a.count)
-                      .slice(0, 10)
-                      .map((agent, index) => (
-                        <tr key={index} className={index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'}>
-                          <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 truncate max-w-xs">
-                            {agent.agent}
-                          </td>
-                          <td className="px-4 py-2 text-sm text-gray-500 dark:text-gray-300 text-right">
-                            {agent.count}
-                          </td>
-                          <td className="px-4 py-2 text-sm text-right">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${agent.isBot ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'}`}>
-                              {agent.isBot ? 'Bot' : 'User'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            </ResponsiveGrid>
-            
-            <ResponsiveGrid>
-              <Card title="Top IP Addresses" height="auto" className="col-span-full">
-                <DataTable
-                  data={ipsData.slice(0, 15)}
-                  columns={[
-                    { 
-                      key: 'ip', 
-                      label: 'IP Address',
-                      render: (value, item) => (
-                        <button 
-                          onClick={() => handleIpClick(item)}
-                          className="text-blue-600 dark:text-blue-400 hover:underline focus:outline-none"
-                        >
-                          {value}
-                        </button>
-                      )
-                    },
-                    { key: 'count', label: 'Requests' },
-                    { 
-                      key: 'location', 
-                      label: 'Estimated Location',
-                      render: (_, item) => {
-                        // Simple location simulation based on IP pattern
-                        // In a real app, use GeoIP services
-                        const ipParts = item.ip.split('.');
-                        const locations = ['United States', 'Germany', 'Japan', 'Brazil', 'Canada', 'France', 'UK', 'Australia'];
-                        const ipSum = ipParts.reduce((sum, part) => sum + parseInt(part, 10), 0);
-                        return locations[ipSum % locations.length];
-                      }
-                    }
-                  ]}
-                  itemsPerPage={10}
-                />
-              </Card>
-            </ResponsiveGrid>
-          </>
+          <BotTrafficAnalysis
+            botUserData={botUserData}
+            rawLogsData={rawLogsData}
+            ipsData={ipsData}
+            timelineData={timelineData}
+            timeRange={timeRange}
+            handleApplyFilters={handleApplyFilters}
+            handleIpClick={handleIpClick}
+          />
         );
 
       case 'logs':

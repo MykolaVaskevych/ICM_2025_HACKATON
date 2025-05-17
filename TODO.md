@@ -1,22 +1,22 @@
 # NGINX Dashboard TODO
 
 ## Visualization Improvements
-- [ ] Fix Traffic Transferred (MB) hourly plot to respect selected day
-- [ ] Fix Error Timeline (Hourly) to respect selected day
-- [ ] Improve all plots with more detailed tooltips and information
-- [ ] Add more descriptive legends to all charts
-- [ ] Add hover explanations to charts and key metrics
-- [ ] Increase width of components like Top Endpoints, Top IPs, etc.
+- [x] Fix Traffic Transferred (MB) hourly plot to respect selected day
+- [x] Fix Error Timeline (Hourly) to respect selected day
+- [x] Improve all plots with more detailed tooltips and information
+- [x] Add more descriptive legends to all charts
+- [x] Add hover explanations to charts and key metrics
+- [x] Increase width of components like Top Endpoints, Top IPs, etc.
 - [ ] Add data source information below charts
 
 ## Bot Traffic Page Enhancements
-- [ ] Add geographical distribution of bot traffic
-- [ ] Add bot classification breakdown (good bots vs. malicious)
-- [ ] Create bot traffic timeline to show patterns over time
-- [ ] Add bot request pattern analysis
-- [ ] Show most targeted endpoints by bots
+- [x] Add geographical distribution of bot traffic
+- [x] Add bot classification breakdown (good bots vs. malicious)
+- [x] Create bot traffic timeline to show patterns over time
+- [x] Add bot request pattern analysis
+- [x] Show most targeted endpoints by bots
 - [ ] Compare response times: bot traffic vs. user traffic
-- [ ] Add bot user-agent correlation analysis
+- [x] Add bot user-agent correlation analysis
 
 ## Additional Dashboard Improvements
 - [ ] Implement heatmap for traffic patterns by hour/day of week
