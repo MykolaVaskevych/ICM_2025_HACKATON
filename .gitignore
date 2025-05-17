@@ -1,3 +1,5 @@
 /.venv/
 .DS_Store
 access_log
+.idea
+__pycache__
