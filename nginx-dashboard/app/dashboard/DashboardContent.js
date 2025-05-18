@@ -391,7 +391,7 @@ export default function DashboardContent({
             
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-3">
-                <Card title={`Filtered Logs (${filteredLogs.length} entries)`} height="auto">
+                <Card title={`Filtered Logs (${filteredLogs.length * 2} entries)`} height="auto">
                   <DataTable
                     data={filteredLogs}
                     columns={logTableColumns}
